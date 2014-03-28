@@ -205,7 +205,6 @@ endef
 define create_lexical_reordering_table
 
 mystem := $(strip $1).$(strip $2)
-# .INTERMEDIATE: $${mystem}.gz
 $${mystem}.gz: dmshards = $$(shell ls $3.shards/*.dst.gz 2>/dev/null)
 $${mystem}.gz: dm.type=$(word 1,$(subst -, ,$2))
 $${mystem}.gz: dm.orient=$(word 2,$(subst -, ,$2))
@@ -270,6 +269,12 @@ PTABLES        += $(strip $4) $(strip $5) $(strip $6)
 endef
 #################################################################################
 
+# $1: input factor
+# $2: output factor
+# $3: num-features
+# $4: path to mmapped data
+# $5: path to text data
+# $6: path and basename of dynamic data
 define add_mmsapt
 
 $(call mmap_bitext,$(strip $5),$(strip $4))
@@ -281,6 +286,7 @@ MY_ENTRY += output-factor=$(strip $2)
 MY_ENTRY += num-features=$(strip $3)
 MY_ENTRY += base=$(abspath $4)/ L1=${L1} L2=${L2}
 PTABLE_ENTRIES += $$(subst $$(space),;,$${MY_ENTRY})
+
 MOSES_INI_PREREQ += $(addprefix $(strip $4)/${L1},.mct .tdx .sfa)
 MOSES_INI_PREREQ += $(addprefix $(strip $4)/${L2},.mct .tdx .sfa)
 MOSES_INI_PREREQ += $(strip $4)/${L1}-${L2}.mam

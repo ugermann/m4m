@@ -146,7 +146,7 @@ ${WDIR}/aux/truecasing-model.${L2}: | $(call trn.tok-mno,${L2})
 #                         Generate rules                                   #
 ############################################################################
 
-all_data_dirs := $(addprefix ${WDIR}/crp/,trn/mno trn/pll dev tst)
+all_data_dirs := $(addprefix ${WDIR}/crp/,trn/mno trn/pll dev tst dev+tst)
 
 # add rules for tokenization and casing
 snippet := $(foreach d,$(all_data_dirs),$(foreach l,${L1} ${L2},\
