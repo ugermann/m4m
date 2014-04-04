@@ -47,8 +47,9 @@ $(strip $2):
 	--mertdir ${MOSES_BIN} \
 	--rootdir ${MOSES_SCRIPTS} \
 	--working-dir $${mert.wdir} \
-	--decoder-flags "${mert.decoder-flags} -inputtype $${tune.itype}" \
-	$${tune.src} $${tune.ref} ${moses} $1
+	--decoder-flags "${mert.decoder-flags}" \
+	--inputtype $${tune.itype} \
+	$${tune.src} $${tune.ref} $${moses} $1
 	${apply-weights} $1 $${mert.wdir}/moses.ini $$@_ && mv $$@_ $$@
 	$$(unlock)
 
