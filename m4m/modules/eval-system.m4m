@@ -1,8 +1,9 @@
 # -*- Makefile -*-
 
+FACTORSEP ?= |
 moses.threads ?= 4
 moses.flags += -threads ${moses.threads}
-moses.flags += -v 0 -t -text-type "test"
+moses.flags += -v 0 -t -text-type "test" -fd '${FACTORSEP}'
 
 %.multi-bleu: | %.cleaned 
 	$(lock)
