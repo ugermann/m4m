@@ -9,7 +9,7 @@
 max-sentence-length ?= 80
 casing.${L1}        ?= truecase
 casing.${L2}        ?= truecase
-
+MAX_NUM_REFS        ?= 4
 # tok-mno: monolingual resources
 # tok-pll: parallel resources
 trn.raw-mno   = $(notdir $(wildcard ${WDIR}/crp/trn/mno/raw/*.$1.gz))
@@ -24,10 +24,10 @@ trn.cased-pll = $(addprefix ${WDIR}/crp/trn/pll/cased/, $(call trn.raw-pll,$1))
 
 define tokenize
 
-$1/tok/%.$2.gz: $1/raw/%.$2.gz
+$2/tok/%.$3.gz: | $2/raw/%.$3.gz
 	$$(lock)
-	zcat $$< | ${pre-tokenize.$2} \
-	| ${parallel} -j4 --pipe -k ${tokenize.$2} \
+	zcat $$(word 1,$$|) | ${pre-tokenize.$1} \
+	| ${parallel} -j4 --pipe -k ${tokenize.$1} \
 	| gzip > $$@_
 	mv $$@_ $$@
 	$$(unlock)
@@ -39,36 +39,36 @@ endef
 ###########################################################################
 define truecase
 
-$1/cased/%.$2.gz: caser  = ${run-truecaser} 
-$1/cased/%.$2.gz: caser += -model ${WDIR}/aux/truecasing-model.$2
-$1/cased/%.$2.gz: $1/tok/%.$2.gz ${WDIR}/aux/truecasing-model.$2
+$2/cased/%.$3.gz: caser  = ${run-truecaser} 
+$2/cased/%.$3.gz: caser += -model ${WDIR}/aux/truecasing-model.$1
+$2/cased/%.$3.gz: | $2/tok/%.$3.gz  ${WDIR}/aux/truecasing-model.$1
 	$$(lock)
-	zcat $$< | ${parallel} --pipe -k $${caser} | gzip > $$@_
+	zcat $$(word 1, $$|) | ${parallel} --pipe -k $${caser} | gzip > $$@_
 	mv $$@_ $$@
 	$$(unlock)
-$1/cased/%.$2: caser  = ${run-truecaser} 
-$1/cased/%.$2: caser += -model ${WDIR}/aux/truecasing-model.$2
-$1/cased/%.$2: $1/tok/%.$2.gz ${WDIR}/aux/truecasing-model.$2
+$2/cased/%.$3: | $2/cased/%.$3.gz 
 	$$(lock)
-	zcat $$< | ${parallel} -j4 --pipe -k $${caser} > $$@_
+	gzip -d < $$(word 1, $$|) > $$@_
 	mv $$@_ $$@
 	$$(unlock)
 
 endef 
 
 define lowercase
-$1/cased/%.$2.gz: caser  = ${run-lowercaser}
-$1/cased/%.$2.gz: | $1/tok/%.$2.gz
+
+$2/cased/%.$3.gz: caser  = ${run-lowercaser}
+$2/cased/%.$3.gz: | $2/tok/%.$3.gz
 	$$(lock)
 	zcat $$| | ${parallel} -j4 --pipe -k $${caser} | gzip > $$@_
 	mv $$@_ $$@
 	$$(unlock)
-$1/cased/%.$2: caser  = ${run-lowercaser}
-$1/cased/%.$2: | $1/tok/%.$2.gz
+
+$2/cased/%.$3: | $2/cased/%.$3.gz 
 	$$(lock)
-	zcat $$| | ${parallel} -j4 --pipe -k $${caser} > $$@_
+	gzip -d < $$(word 1, $$|) > $$@_
 	mv $$@_ $$@
 	$$(unlock)
+
 endef
 
 define skipcasing
@@ -149,8 +149,12 @@ ${WDIR}/aux/truecasing-model.${L2}: | $(call trn.tok-mno,${L2})
 all_data_dirs := $(addprefix ${WDIR}/crp/,trn/mno trn/pll dev tst dev+tst)
 
 # add rules for tokenization and casing
-snippet := $(foreach d,$(all_data_dirs),$(foreach l,${L1} ${L2},\
-$(call tokenize,$d,$l)$(call ${casing.$l},$d,$l)))
+snippet := $(foreach d,$(all_data_dirs),\
+$(call tokenize,${L1},$d,${L1})$(call ${casing.${L1}},${L1},$d,${L1}))
+
+snippet += $(foreach d,$(all_data_dirs),\
+$(foreach l,${L2} $(addprefix ${L2},$(shell seq 0 ${MAX_NUM_REFS})),\
+$(call tokenize,${L2},$d,$l)$(call ${casing.${L2}},${L2},$d,$l)))
 
 MY_EXPERIMENT += $(snippet)
 #$(info $(snippet))
