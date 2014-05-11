@@ -130,14 +130,18 @@ endef
 #${WDIR}/aux/truecasing-model.${L1}: | $(call trn.tok-mno,${L1}) $(call trn.tok-pll,${L1})
 ${WDIR}/aux/truecasing-model.${L1}: | $(call trn.tok-mno,${L1}) 
 	$(lock)
+	$(if $|,,$(error Can't find training data for $@!))#'
 	${train-truecaser} -model $@_ -corpus <(echo $| | xargs zcat -f) 
+	test -s $@_ || (echo "Truecasing model $@ is empty!" && exit 1)
 	mv $@_ $@
 	$(unlock)
 
 #${WDIR}/aux/truecasing-model.${L2}: | $(call trn.tok-mno,${L2}) $(call trn.tok-pll,${L2})
 ${WDIR}/aux/truecasing-model.${L2}: | $(call trn.tok-mno,${L2}) 
 	$(lock)
+	$(if $|,,$(error Can't find training data for $@!))#'
 	${train-truecaser} -model $@_ -corpus <(echo $| | xargs zcat -f) 
+	test -s $@_ || (echo "Truecasing model $@ is empty!" && exit 1)
 	mv $@_ $@
 	$(unlock)
 
