@@ -28,7 +28,7 @@ $(shell find -L $2 -regex '.*$(call refbase,$1)[0-9]*\(.gz\)?'\
 
 # $1: moses input file 
 # ->: 0 for plain text, 1 for confusion network
-guess-inputtype = $(if $(findstring /cfn/,$1),1,0)
+guess-inputtype = $(if $(findstring /cfn,$1),1,0)
 
 ############################################################################
 # TUNE SYSTEM
@@ -46,7 +46,7 @@ tune.reffiles  = $$(call reffiles,$3,$(dir $(patsubst %/,%,$(dir $3))))
 $(strip $2): $${PTABLES} $${DTABLES} $${LMODELS} $${MOSES_INI_PREREQ}
 $(strip $2): mert.wdir  = $(dir $(abspath $2))tmp
 $(strip $2): tune.src   = $3
-$(strip $2): tune.ref   = $$(subst /cfn/,/cased/,$(patsubst %.${L1},%.${L2},$3))
+$(strip $2): tune.ref   = $$(shell echo $(patsubst %.${L1},%.${L2},$3) | perl -pe 's?/cfn[^/]+/?/cased/?')
 $(strip $2): tune.itype = $$(call guess-inputtype,$3)
 $(strip $2): | $1 $3 $${tune.reffiles}
 $(strip $2): 
