@@ -7,7 +7,7 @@
 # recursively but upon assignment.
 
 # standard features with one weight each
-STANDARD_FEATURES := UnknownWordPenalty WordPenalty Distortion
+STANDARD_FEATURES := UnknownWordPenalty WordPenalty Distortion PhrasePenalty
 WEIGHTS           := $(foreach x,$(STANDARD_FEATURES),$x0=;1.0)
 PTABLE_ENTRIES    := 
 DTABLE_ENTRIES    := 
@@ -18,6 +18,7 @@ TUNED_SYSTEMS     :=
 DTABLES :=
 PTABLES := 
 LMODELS := 
+INPUT_FEATURES ?=
 export MY_EXPERIMENT := 
 
 
