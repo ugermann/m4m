@@ -47,6 +47,7 @@ $(strip $2): $${PTABLES} $${DTABLES} $${LMODELS} $${MOSES_INI_PREREQ}
 $(strip $2): mert.wdir  = $(dir $(abspath $2))tmp
 $(strip $2): tune.src   = $3
 $(strip $2): tune.ref   = $$(shell echo $(patsubst %.${L1},%.${L2},$3) | perl -pe 's?/cfn[^/]+/?/cased/?')
+$(strip $2): tune.aln   = $$(shell echo $(patsubst %.${L1},%.symal,$3) | perl -pe 's?/cfn[^/]+/?/cased/?')
 $(strip $2): tune.itype = $$(call guess-inputtype,$3)
 $(strip $2): | $1 $3 $${tune.reffiles}
 $(strip $2): 

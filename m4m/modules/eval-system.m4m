@@ -1,15 +1,11 @@
 # -*- Makefile -*-
 
-FACTORSEP ?= |
-moses.threads ?= 4
-moses.flags += -threads ${moses.threads}
-moses.flags += -v 0 -t -text-type "test" -fd '${FACTORSEP}'
-
 %.multi-bleu: | %.cleaned 
 	$(lock)
 	${multi-bleu} ${bleu.ref} < $*.cleaned > $@_ && mv $@_ $@
 	$(unlock)
 
+moses.flags ?= 
 %.moses-out.wa: moses.flags += -alignment-output-file $*.output.wa
 %.moses-out.wa: %.moses-out
 
@@ -18,7 +14,7 @@ moses.ini ?=
 %.moses-out: | ${moses.ini}
 	echo MOSES $^ 
 	$(lock)
-	${moses} -i ${moses.input} -inputtype ${moses.inputtype} \
+	${moses} ${eval.decoder-flags} -i ${moses.input} -inputtype ${moses.inputtype} \
 	-f ${moses.ini} ${moses.flags} > $@_ && mv $@_ $@
 	$(unlock)
 
@@ -44,6 +40,9 @@ $1: moses.ini       := $2
 $1: moses.input     := $3
 $1: moses.inputtype := $(call guess-inputtype,$3)
 $1: bleu.ref        := $$(shell echo $(patsubst %.${L1},%.${L2},$3) | perl -pe 's?/cfn[^/]+/?/cased/?')
+$1: eval.ref        := $$(shell echo $(patsubst %.${L1},%.${L2},$3) | perl -pe 's?/cfn[^/]+/?/cased/?')
+$1: eval.aln        := $$(shell echo $(patsubst %.${L1},%.symal,$3) | perl -pe 's?/cfn[^/]+/?/cased/?')
+
 $1.moses-out:  | $2 $3
 $1.multi-bleu: | $(call reffiles,$3,$(dir $(patsubst %/,%,$(dir $3))))
 $1: | $1.multi-bleu 
