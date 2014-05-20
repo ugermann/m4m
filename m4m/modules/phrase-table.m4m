@@ -89,6 +89,8 @@ endef
 #--------------------------------------------------------------------------------
 define create_phrase_table
 
+$(call extract_phrases,$1,$${pll.txt1},$${pll.txt2},$${pll.aln})
+
 ptable: $1.txt.gz
 $1.txt.gz: | ${merge-sorted}
 $1.txt.gz: | ${MOSES_BIN}/consolidate
@@ -97,11 +99,10 @@ $1.txt.gz: | $1.tmp/bwd/scoring.done
 	$$(lock)
 	${MOSES_BIN}/consolidate \
 	<(zcat -f $1.tmp/fwd.scored.gz) \
-	<(${merge-sorted} $1.tmp/bwd/scored.*.gz && touch $$@_.OK) \
-	/dev/stdout \
+	<(${merge-sorted} $1.tmp/bwd/scored.*.gz) /dev/stdout \
 	$(if $(ptable.smoothing), $(ptable.smoothing) $1.tmp/fwd.coc) \
 	| gzip > $$@_ 
-	rm $$@_.OK && mv $$@_ $$@
+	mv $$@_ $$@
 	$$(unlock)
 
 $1.tmp/fwd.scored.gz: | $(merge-sorted)
@@ -118,7 +119,7 @@ $1.tmp/bwd/scoring.done: | $1.${L2}-given-${L1}.lex.gz
 	$$(lock)
 	$(merge-sorted) $1.shards/*.bwd.gz \
 	| ${moses.score-phrases} ${MOSES_BIN}/score - $1.${L2}-given-${L1}.lex.gz \
-	$${@D}/scored "$(ptable.smoothing)" --Inverse && touch $$@
+	$${@D}/scored $(ptable.smoothing) --Inverse && touch $$@
 	$$(unlock)
 
 # reminder: $2,$3,$4 = L1text, L2text, alignment
