@@ -2,7 +2,7 @@
 casing1 ?= truecase
 casing2 ?= truecase
 word-alignment ?= fast
-moses.threads = $(shell parallel --number-of-cores)
+moses.threads ?= -threads $(shell parallel --number-of-cores)
 
 # numerical constants for moses
 moses.inputtype.plaintext = 0
@@ -17,12 +17,12 @@ lmodel      = model/lm/${L2}/kenlm
 lexdm_specs = wbe-mslr-bidirectional-fe-allff
 lexdm       = model/dm/bin/${L1}-${L2}/${dflt_lexdmodel_specs}
 
-ptable.max-phrase-length = 7
-ptable.smoothing         = --GoodTuring
-ptable.source-factors    = 0
-ptable.target-factors    = 0
-ptable.num-features      = 5
-ptable.implemetation     = 1
+ptable.max-phrase-length ?= 7
+ptable.smoothing         ?= --GoodTuring
+ptable.source-factors    ?= 0
+ptable.target-factors    ?= 0
+ptable.num-features      ?= 5
+ptable.implemetation     ?= 1
 # reminder: implementation types:
 #  0 - text
 #  1 - binary via processPhraseTable
@@ -49,9 +49,15 @@ dmodel.description  = $(addprefix ${dmodel.type}-${dmodel.orientation}-,\
 			${dmodel.direction}-${dmodel.language}-${dmodel.collapsing})
 distortion-limit    = 6
 
+FACTORSEP ?= \n
+
 # DEFAULT TUNING PARAMETERS
-FACTORSEP ?= |
 mert.nbest          = 100
 mert.extra-flags   ?=
 mert.extra-flags   += --no-filter-phrase-table
-mert.decoder-flags  = -threads ${moses.threads} -fd '${FACTORSEP}'
+mert.decoder-flags ?=
+mert.decoder-flags += ${moses.threads} -fd '${FACTORSEP}'
+
+eval.decoder-flags ?=
+eval.decoder-flags += ${moses.threads}
+eval.decoder-flags += -v 0 -t -text-type "test" -fd '${FACTORSEP}'
