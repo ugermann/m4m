@@ -121,7 +121,7 @@ $(if $(filter $(dir $1)${L1}-given-${L2}.lex.gz,${M4M_HISTORY}),\
 
 M4M_HISTORY += $1.txt.gz
 
-ptable: $1.txt.gz
+#ptable: $1.txt.gz
 $1.txt.gz: | ${merge-sorted}
 $1.txt.gz: | ${MOSES_BIN}/consolidate
 $1.txt.gz: | $1.tmp/fwd.scored.gz
@@ -137,7 +137,7 @@ $1.txt.gz: | $1.tmp/bwd/scoring.done
 
 $1.tmp/fwd.scored.gz: | $(merge-sorted)
 $1.tmp/fwd.scored.gz: | $${shardsdir}/extract.done
-$1.tmp/fwd.scored.gz: | $${wlexdir}${L1}-given-${L2}.lex.gz
+$1.tmp/fwd.scored.gz: | $${wlexdir}/${L1}-given-${L2}.lex.gz
 	$$(lock)
 	$(merge-sorted) $${shardsdir}/*.fwd.gz \
 	| $(moses.score-phrases) ${MOSES_BIN}/score - $${wlexdir}${L1}-given-${L2}.lex.gz \
@@ -145,7 +145,7 @@ $1.tmp/fwd.scored.gz: | $${wlexdir}${L1}-given-${L2}.lex.gz
 	$$(unlock)
 
 $1.tmp/bwd/scoring.done: | $${shardsdir}/extract.done
-$1.tmp/bwd/scoring.done: | $${wlexdir}${L2}-given-${L1}.lex.gz
+$1.tmp/bwd/scoring.done: | $${wlexdir}/${L2}-given-${L1}.lex.gz
 	$$(lock)
 	$(merge-sorted) $${shardsdir}/*.bwd.gz \
 	| ${moses.score-phrases} ${MOSES_BIN}/score - $${wlexdir}${L2}-given-${L1}.lex.gz \
