@@ -12,15 +12,13 @@ casing.${L2}        ?= truecase
 MAX_NUM_REFS        ?= 4
 # tok-mno: monolingual resources
 # tok-pll: parallel resources
-trn.raw-mno   = $(notdir $(wildcard ${WDIR}/crp/trn/mno/raw/*.$1.gz))
-trn.tok-mno   = $(addprefix ${WDIR}/crp/trn/mno/tok/, $(call trn.raw-mno,$1))
-trn.cased-mno = $(addprefix ${WDIR}/crp/trn/mno/cased/, $(call trn.raw-mno,$1))
+trn.mno   = $(sort $(notdir $(foreach d,raw tok cased,$(wildcard ${WDIR}/crp/trn/mno/$d/*.$1.gz))))
+trn.tok-mno   = $(addprefix ${WDIR}/crp/trn/mno/tok/, $(call trn.mno,$1))
+trn.cased-mno = $(addprefix ${WDIR}/crp/trn/mno/cased/, $(call trn.mno,$1))
 
-trn.raw-pll   = $(notdir $(wildcard ${WDIR}/crp/trn/pll/raw/*.$1.gz))
-trn.tok-pll   = $(addprefix ${WDIR}/crp/trn/pll/tok/, $(call trn.raw-pll,$1))
-trn.cased-pll = $(addprefix ${WDIR}/crp/trn/pll/cased/, $(call trn.raw-pll,$1))
-
-
+trn.pll = $(sort $(notdir $(foreach d,raw tok cased,$(wildcard ${WDIR}/crp/trn/pll/$d/*.$1.gz))))
+trn.tok-pll = $(addprefix ${WDIR}/crp/trn/pll/tok/, $(call trn.pll,$1))
+trn.cased-pll = $(addprefix ${WDIR}/crp/trn/pll/cased/, $(call trn.pll,$1))
 
 define tokenize
 
