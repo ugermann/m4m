@@ -140,7 +140,7 @@ $1.tmp/fwd.scored.gz: | $${shardsdir}/extract.done
 $1.tmp/fwd.scored.gz: | $${wlexdir}/${L1}-given-${L2}.lex.gz
 	$$(lock)
 	$(merge-sorted) $${shardsdir}/*.fwd.gz \
-	| $(moses.score-phrases) ${MOSES_BIN}/score - $${wlexdir}${L1}-given-${L2}.lex.gz \
+	| $(moses.score-phrases) ${MOSES_BIN}/score - $${wlexdir}/${L1}-given-${L2}.lex.gz \
 	$${@D}/fwd $(ptable.smoothing) && mv $$@_ $$@
 	$$(unlock)
 
@@ -148,7 +148,7 @@ $1.tmp/bwd/scoring.done: | $${shardsdir}/extract.done
 $1.tmp/bwd/scoring.done: | $${wlexdir}/${L2}-given-${L1}.lex.gz
 	$$(lock)
 	$(merge-sorted) $${shardsdir}/*.bwd.gz \
-	| ${moses.score-phrases} ${MOSES_BIN}/score - $${wlexdir}${L2}-given-${L1}.lex.gz \
+	| ${moses.score-phrases} ${MOSES_BIN}/score - $${wlexdir}/${L2}-given-${L1}.lex.gz \
 	$${@D}/scored $(ptable.smoothing) --Inverse && touch $$@
 	$$(unlock)
 
@@ -293,7 +293,7 @@ endef
 # $3: num-features
 # $4: path to mmapped data
 # $5: path to text data
-# $6: path and basename of dynamic data
+# $6: additional parameters
 define add_mmsapt
 
 $(call mmap_bitext,$(strip $5),$(strip $4))
@@ -304,6 +304,7 @@ MY_ETNRY += input-factor=$(strip $1)
 MY_ENTRY += output-factor=$(strip $2)
 MY_ENTRY += num-features=$(strip $3)
 MY_ENTRY += base=$(abspath $4)/ L1=${L1} L2=${L2}
+$(if $6,MY_ENTRY += $(strip $6))
 PTABLE_ENTRIES += $$(subst $$(space),;,$${MY_ENTRY})
 
 MOSES_INI_PREREQ += $(addprefix $(strip $4)/${L1},.mct .tdx .sfa)
