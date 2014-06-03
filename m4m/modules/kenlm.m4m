@@ -9,10 +9,11 @@ kenlm.lazy   ?= 1
 kenlm.factor ?= 0
 
 %.kenlm:
+	$(if ${lm.training-data},,$(error No training data for language model found!))
 	$(lock)
-	zcat -f $| | ${kenlm.build} -o ${kenlm.order} -S${kenlm.memory} \
-	| ${kenlm.binarize} ${kenlm.type} /dev/stdin $@_
-	mv $@_ $@
+	zcat -f ${lm.training-data} \
+	| ${kenlm.build} -o ${kenlm.order} -S${kenlm.memory} \
+	| ${kenlm.binarize} ${kenlm.type} /dev/stdin $@_ && mv $@_ $@
 	$(unlock)
 
 
