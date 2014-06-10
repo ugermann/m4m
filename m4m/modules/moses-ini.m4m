@@ -19,9 +19,15 @@ print "$$1=";\
 m/num-features=([0-9]+)/;\
 print " 1.0"x$$1,"\n";'
 
+define declare_moses_ini_prereq
+
+$(strip $1)/moses.ini.0: | $2
+endef
+
 define create_moses_ini
 
-$(strip $1)/moses.ini.0: ${PTABLES} ${DTABLES} ${LMODELS} ${MOSES_INI_PREREQ}
+$(foreach prereq,${PTABLES} ${DTABLES} ${LMODELS} ${MOSES_INI_PREREQ},\
+$(call declare_moses_ini_prereq,$1,${prereq}))
 	$$(lock)
 	echo '[input-factors]'                                         > $$@_
 	echo '$${moses.ini_input-factors}'                            >> $$@_
