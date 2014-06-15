@@ -49,7 +49,7 @@ dmodel.description  = $(addprefix ${dmodel.type}-${dmodel.orientation}-,\
 			${dmodel.direction}-${dmodel.language}-${dmodel.collapsing})
 distortion-limit    = 6
 
-FACTORSEP ?= none
+FACTORSEP ?= |
 
 # DEFAULT TUNING PARAMETERS
 mert.nbest          = 100
