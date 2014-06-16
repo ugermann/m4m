@@ -137,18 +137,18 @@ $1.txt.gz: | $1.tmp/bwd/scoring.done
 
 $1.tmp/fwd.scored.gz: | $(merge-sorted)
 $1.tmp/fwd.scored.gz: | $${shardsdir}/extract.done
-$1.tmp/fwd.scored.gz: | $${wlexdir}/${L1}-given-${L2}.lex.gz
+$1.tmp/fwd.scored.gz: | $${wlexdir}/${L2}-given-${L1}.lex.gz
 	$$(lock)
 	$(merge-sorted) $${shardsdir}/*.fwd.gz \
-	| $(moses.score-phrases) ${MOSES_BIN}/score - $${wlexdir}/${L1}-given-${L2}.lex.gz \
+	| $(moses.score-phrases) ${MOSES_BIN}/score - $${wlexdir}/${L2}-given-${L1}.lex.gz \
 	$${@D}/fwd $(ptable.smoothing) && mv $$@_ $$@
 	$$(unlock)
 
 $1.tmp/bwd/scoring.done: | $${shardsdir}/extract.done
-$1.tmp/bwd/scoring.done: | $${wlexdir}/${L2}-given-${L1}.lex.gz
+$1.tmp/bwd/scoring.done: | $${wlexdir}/${L1}-given-${L2}.lex.gz
 	$$(lock)
 	$(merge-sorted) $${shardsdir}/*.bwd.gz \
-	| ${moses.score-phrases} ${MOSES_BIN}/score - $${wlexdir}/${L2}-given-${L1}.lex.gz \
+	| ${moses.score-phrases} ${MOSES_BIN}/score - $${wlexdir}/${L1}-given-${L2}.lex.gz \
 	$${@D}/scored $(ptable.smoothing) --Inverse && touch $$@
 	$$(unlock)
 
