@@ -13,6 +13,11 @@ obase=$4
 smoothing=$5
 inv=$6
 
+if [[ "$smoothing" == "--Inverse" ]] ; then
+    smoothing=
+    inv=--Inverse
+fi
+
 cleanup()
 {
     if [ -e $obase.$$ ] ;     then rm $obase.$$; fi
