@@ -131,8 +131,7 @@ $1.txt.gz: | $1.tmp/bwd/scoring.done
 	<(zcat -f $1.tmp/fwd.scored.gz) \
 	<(${merge-sorted} $1.tmp/bwd/scored.*.gz) /dev/stdout \
 	$(if $(ptable.smoothing), $(ptable.smoothing) $1.tmp/fwd.coc) \
-	| gzip > $$@_ 
-	mv $$@_ $$@
+	| gzip > $$@_ && mv $$@_ $$@
 	$$(unlock)
 
 $1.tmp/fwd.scored.gz: | $(merge-sorted)
