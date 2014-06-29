@@ -6,20 +6,14 @@
 # by default, we use good-turing smoothing for phrase tables
 # (is that actually worth it?)
 
-# the following variables should be defined in moses-parameters.make:
-# ptable.max-phrase-length 
-# ptable.smoothing 
-# ptable.source-factors 
-# ptable.target-factors
-
 word-alignment ?= fast
-pll.txt1 = ${WDIR}/crp/trn/aln/${word-alignment}/${L1}.txt.gz
-pll.txt2 = ${WDIR}/crp/trn/aln/${word-alignment}/${L2}.txt.gz
-pll.aln  = ${WDIR}/crp/trn/aln/${word-alignment}/${L1}-${L2}.symal.gz
+pll.txt1 ?= ${WDIR}/crp/trn/aln/${word-alignment}/${L1}.txt.gz
+pll.txt2 ?= ${WDIR}/crp/trn/aln/${word-alignment}/${L2}.txt.gz
+pll.aln  ?= ${WDIR}/crp/trn/aln/${word-alignment}/${L1}-${L2}.symal.gz
 
 define phrase_extract_cmd
 ${moses.extract-phrases} ${moses.extract} $(1:.aln.gz=) ${L1} ${L2} \
--l ${ptable.max-phrase-length} -m $2
+-l $${ptable.max-phrase-length} -m $2
 endef
 
 #################################################################################
@@ -67,7 +61,7 @@ $1/extract.batch: $$(SHARDS)
 
 $1/extract.done: $1/extract.batch
 	$$(lock)
-	${parallel} -j$(shell echo $$((${NUMCORES}/4))) < $1/extract.batch
+	${parallel} -j$$(ptable.extract.in-parallel) < $1/extract.batch
 	touch $$@
 	$$(unlock)
 
@@ -121,16 +115,17 @@ $(if $(filter $(dir $1)${L1}-given-${L2}.lex.gz,${M4M_HISTORY}),\
 
 M4M_HISTORY += $1.txt.gz
 
-#ptable: $1.txt.gz
+$1.txt.gz: smooth = $$(ptable.smoothing)
 $1.txt.gz: | ${merge-sorted}
 $1.txt.gz: | ${MOSES_BIN}/consolidate
 $1.txt.gz: | $1.tmp/fwd.scored.gz
 $1.txt.gz: | $1.tmp/bwd/scoring.done
+	$$(info PTABLE SMOOTHING: $$(ptable.smoothing) for system ${PTTYPE} ($$@}))
 	$$(lock)
 	${MOSES_BIN}/consolidate \
 	<(zcat -f $1.tmp/fwd.scored.gz) \
 	<(${merge-sorted} $1.tmp/bwd/scored.*.gz) /dev/stdout \
-	$(if $(ptable.smoothing), $(ptable.smoothing) $1.tmp/fwd.coc) \
+	$$(if $$(smooth), $$(smooth) $1.tmp/fwd.coc) \
 	| gzip > $$@_ && mv $$@_ $$@
 	$$(unlock)
 
@@ -140,7 +135,7 @@ $1.tmp/fwd.scored.gz: | $${wlexdir}/${L2}-given-${L1}.lex.gz
 	$$(lock)
 	$(merge-sorted) $${shardsdir}/*.fwd.gz \
 	| $(moses.score-phrases) ${MOSES_BIN}/score - $${wlexdir}/${L2}-given-${L1}.lex.gz \
-	$${@D}/fwd $(ptable.smoothing) && mv $$@_ $$@
+	$${@D}/fwd $$(smooth) && mv $$@_ $$@
 	$$(unlock)
 
 $1.tmp/bwd/scoring.done: | $${shardsdir}/extract.done
@@ -148,7 +143,7 @@ $1.tmp/bwd/scoring.done: | $${wlexdir}/${L1}-given-${L2}.lex.gz
 	$$(lock)
 	$(merge-sorted) $${shardsdir}/*.bwd.gz \
 	| ${moses.score-phrases} ${MOSES_BIN}/score - $${wlexdir}/${L1}-given-${L2}.lex.gz \
-	$${@D}/scored $(ptable.smoothing) --Inverse && touch $$@
+	$${@D}/scored $$(smooth) --Inverse && touch $$@
 	$$(unlock)
 
 endef 
@@ -163,7 +158,7 @@ endef
 
 define add_binary_phrase_table
 
-$(if $(filter $4.txt.gz,${M4M_HISTORY}),,$(call create_phrase_table,$4))
+$(if $(filter $4.txt.gz,${M4M_HISTORY}),,$(call create_phrase_table,$(strip $4)))
 
 mystem   := $(strip $4)
 ffname   := TranslationModel$(words ${PTABLE_ENTRIES})
@@ -183,15 +178,13 @@ $(strip $4).binphr.idx: nscores=$3
 
 endef
 #################################################################################
-
 %.binphr.idx: %.txt.gz | ${MOSES_BIN}/processPhraseTable
+	$(info MOSES_BIN=${MOSES_BIN})
 	$(lock)
 	zcat -f $*.txt.gz | ${MOSES_BIN}/processPhraseTable \
 	-ttable $(infactor) $(outfactor) - -nscores $(nscores) -out $@.lock/$(notdir $*)
 	mv $@.lock/$(notdir $*).* ${@D}
 	$(unlock)
-
-
 
 #################################################################################
 # $1: input factor(s)
@@ -312,3 +305,12 @@ MOSES_INI_PREREQ += $(strip $4)/${L1}-${L2}.mam
 MOSES_INI_PREREQ += $(strip $4)/${L1}-${L2}.lex
 
 endef
+
+# make sure we have all the tools
+REQUIRED_TOOLS ?=
+REQUIRED_TOOLS += ${merge-sorted}
+REQUIRED_TOOLS += ${MOSES_BIN}/consolidate
+REQUIRED_TOOLS += ${MOSES_BIN}/processPhraseTable
+${REQUIRED_TOOLS}:
+	$(error $@ not found)
+

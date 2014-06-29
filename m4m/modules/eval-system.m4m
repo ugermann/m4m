@@ -1,5 +1,8 @@
 # -*- Makefile -*-
 
+%.plog: precmd = sync; echo 3 > /proc/sys/vm/drop_caches; ${procmon} -o $$(basename $$@).plog -c
+%.plog: %.multi-bleu
+
 %.multi-bleu: | %.cleaned 
 	$(lock)
 	${multi-bleu} ${bleu.ref} < $*.cleaned > $@_ && mv $@_ $@
@@ -11,11 +14,14 @@ moses.flags ?=
 
 # .SECONDEXPANSION:
 moses.ini ?= 
+%.moses-out: cmd  = ${moses} ${eval.decoder-flags} 
+%.moses-out: cmd += -f ${moses.ini} ${moses.flags}
+%.moses-out: cmd += -inputtype ${moses.inputtype} -i ${moses.input} 
 %.moses-out: | ${moses.ini}
 	echo MOSES $^ 
 	$(lock)
-	${moses} ${eval.decoder-flags} -i ${moses.input} -inputtype ${moses.inputtype} \
-	-f ${moses.ini} ${moses.flags} > $@_ && mv $@_ $@
+	echo "${cmd}" > $(basename $@).cmd
+	${precmd} ${cmd} > $@_ && mv $@_ $@
 	$(unlock)
 
 %.cleaned: %.moses-out

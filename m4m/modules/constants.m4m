@@ -1,0 +1,4 @@
+# -*- makefile -*-
+# numerical constants for moses
+moses.inputtype.plaintext = 0
+moses.inputtype.cfn = 1

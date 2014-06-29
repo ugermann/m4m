@@ -1,13 +1,6 @@
 # -*- Makefile -*-
 
-# default parameters
-
-kenlm.order  ?= 5
-kenlm.memory ?= 10%
-kenlm.type   ?= probing
-kenlm.lazy   ?= 1 
-kenlm.factor ?= 0
-
+# ${lm.training-data} must contain a list of files with training data
 %.kenlm:
 	$(if ${lm.training-data},,$(error No training data for language model found!))
 	$(lock)

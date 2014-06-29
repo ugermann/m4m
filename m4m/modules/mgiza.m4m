@@ -3,26 +3,17 @@
 # Makefile module for GIZA++ alignment (with mgiza)
 # (c) 2011-2012 Ulrich Germann 
 
-# --- Training Parameters ------------------------------------------------------
-#
-# mkcls: -n: iterations -c: classes. No space allowed after -n/-c!
-mkcls_args = -n10 -c50 
-
 # giza training
-%/mgiza.cfg: m1=5
-%/mgiza.cfg: m2=0
-%/mgiza.cfg: mh=5
-%/mgiza.cfg: m3=3
-%/mgiza.cfg: m4=3
-%/mgiza.cfg: nodumps=0
-%/mgiza.cfg: onlyaldumps=0
-%/mgiza.cfg: model4smoothfactor=0.4
-%/mgiza.cfg: nsmooth=4
-%/mgiza.cfg: NCPUS=8
-
-# symal 
-symal_grow_diag_final_and = -a=g -d=yes -f=yes -b=yes 
-symal_args = ${symal_grow_diag_final_and}
+%/mgiza.cfg: m1 ?= ${giza.model1-iterations}
+%/mgiza.cfg: m2 ?= ${giza.model2-iterations}
+%/mgiza.cfg: mh ?= ${giza.hmm-iterations}
+%/mgiza.cfg: m3 ?= ${giza.model3-iterations}
+%/mgiza.cfg: m4 ?= ${giza.model4-iterations}
+%/mgiza.cfg: model4smoothfactor ?= ${giza.model4smoothfactor}
+%/mgiza.cfg: onlyaldumps ?= ${giza.onlyaldumps}
+%/mgiza.cfg: nodumps ?= ${giza.nodumps}
+%/mgiza.cfg: nsmooth ?= ${giza.nsmooth}
+%/mgiza.cfg: NCPUS ?= ${mgiza.NCPUS}
 
 # ------------------------------------------------------------------------------
 # You should not have to edit anything below this line
@@ -84,7 +75,7 @@ $(giztmp) $(gizout):
 # --- run mkcls (to get word classes) ------------------------------------------
 # ATTENTION: mkcls does not accept spaces between option markers and 
 # option arguments mkcls -n 10 -c 50 ... will make it fail!
-# mkcls_classes and mkcls_iterations should be set in parameters.mak
+# mkcls_classes and mkcls_iterations should be set in giza.cfg
 stream = find -L $(1) -type f -name "*.$(2)" -or -name "*.$(2).gz" | sort | xargs zcat -f
 mkcls_cmd = $(call stream,$(1),$(2)) | ${mkcls} $(mkcls_args) -p/dev/stdin -V$(3) opt
 # mkcls: -n: iterations 
