@@ -1,0 +1,69 @@
+# -*- makefile -*-
+# copy necessary data from Moses Release 2.1 on thor
+
+define get_data
+	$(if $|,,$(error No data specified for $@))
+	$(lock)
+	cat $| | gzip > $@_ && mv $@_ $@
+	$(unlock)
+endef
+
+# determine laguage tags from the current path
+L1 = $(shell echo  $(notdir $(shell dirname $$PWD)) | sed 's/-.*//')
+L2 = $(shell echo  $(notdir $(shell dirname $$PWD)) | sed 's/.*-//')
+
+DATA=/fs/thor1/hieu/RELEASE-2.1/models/${L1}-${L2}
+
+# determine casing and casing tags:
+casing = $(if $(findstring t,$(wildcard ${DATA}/corpus/*truecased.1.$1)),true,lower)case
+casing.${L1}:=$(call casing,${L1})
+casing.${L2}:=$(call casing,${L2})
+ct1 = $(if $(findstring true,${casing.${L1}}),tc,lc)
+ct2 = $(if $(findstring true,${casing.${L2}}),tc,lc)
+
+${WDIR}/aux/truecasing-model.${L1}: | ${WDIR}/crp/trn/mno/tok/train.${L1}.gz
+${WDIR}/aux/truecasing-model.${L2}: | ${WDIR}/crp/trn/mno/tok/train.${L2}.gz
+
+${WDIR}/crp/trn/mno/tok/train.${L1}.gz: | $(wildcard ${DATA}/corpus/*.tok.1.${L1})
+	$(get_data)
+
+${WDIR}/crp/trn/mno/tok/train.${L2}.gz: | $(wildcard ${DATA}/corpus/*.tok.1.${L2})
+	$(get_data)
+
+
+# Word-aligned training data:
+data: ${WDIR}/crp/trn/aln/giza/${L1}.txt.gz
+data: ${WDIR}/crp/trn/aln/giza/${L2}.txt.gz
+data: ${WDIR}/crp/trn/aln/giza/${L1}-${L2}.symal.gz
+
+# Tuning data
+data: ${WDIR}/crp/dev/cased/devset.${L1}.gz
+data: ${WDIR}/crp/dev/cased/devset.${L2}.gz
+
+# Evaluation data
+data: ${WDIR}/crp/tst/cased/testset.${L1}.gz
+data: ${WDIR}/crp/tst/tok/testset.${L2}.gz
+
+${WDIR}/crp/trn/aln/giza/${L1}.txt.gz: | $(wildcard ${DATA}/corpus/*cased.1.${L1})
+	$(get_data)
+
+${WDIR}/crp/trn/aln/giza/${L2}.txt.gz: | $(wildcard ${DATA}/corpus/*cased.1.${L2})
+	$(get_data)
+
+${WDIR}/crp/trn/aln/giza/${L1}-${L2}.symal.gz: | ${DATA}/model/aligned.1.grow-diag-final-and
+	$(get_data)
+
+
+${WDIR}/crp/dev/cased/devset.${L1}.gz: | ${DATA}/tuning/input.$(ct1).1
+	$(get_data)
+
+${WDIR}/crp/dev/cased/devset.${L2}.gz: | ${DATA}/tuning/reference.$(ct2).1
+	$(get_data)
+
+
+${WDIR}/crp/tst/cased/testset.${L1}.gz: | ${DATA}/evaluation/newstest2011.input.$(ct1).1
+	$(get_data)
+
+${WDIR}/crp/tst/tok/testset.${L2}.gz: | ${DATA}/evaluation/newstest2011.reference.tok.1
+	$(get_data)
+

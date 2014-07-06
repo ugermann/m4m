@@ -1,0 +1,93 @@
+#-*- makefile -*-
+
+# build the parameter line for the moses.ini file:
+sapt.parameters  = pfwd=$(strip ${sapt.pfwd})
+sapt.parameters += pbwd=$(strip ${sapt.pbwd})
+sapt.parameters += logcnt=$(strip ${sapt.logcnt})
+sapt.parameters += coh=$(strip ${sapt.coh})
+sapt.parameters += prov=$(strip ${sapt.prov})
+sapt.parameters += rare=$(strip ${sapt.rare})
+sapt.parameters += unal=$(strip ${sapt.unal})
+sapt.parameters += smooth=$(strip ${sapt.smooth})
+sapt.parameters += samples=$(strip ${sapt.sample})
+sapt.parameters += workers=$(if $(findstring ${sapt.sample},0),16,1)
+sapt.parameters += lexalpha=$(strip $(sapt.alpha))
+
+# count the number of features
+sapt.pfwd-flags := $(if $(findstring g,${sapt.pfwd}),1)
+sapt.pfwd-flags += $(if $(findstring s,${sapt.pfwd}),1)
+sapt.pfwd-flags += $(if $(findstring r,${sapt.pfwd}),1)
+
+sapt.pbwd-flags := $(if $(findstring g,${sapt.pbwd}),1)
+sapt.pbwd-flags += $(if $(findstring s,${sapt.pbwd}),1)
+sapt.pbwd-flags += $(if $(findstring r,${sapt.pbwd}),1)
+
+sapt.lcnt-flags := $(if $(findstring r1,${sapt.logcnt}),1)
+sapt.lcnt-flags += $(if $(findstring s1,${sapt.logcnt}),1)
+sapt.lcnt-flags += $(if $(findstring g1,${sapt.logcnt}),1)
+sapt.lcnt-flags += $(if $(findstring j,${sapt.logcnt}),1)
+sapt.lcnt-flags += $(if $(findstring r2,${sapt.logcnt}),1)
+
+# the two lexical features are currently always included:
+sapt.feature-flags  = 1 1 
+sapt.feature-flags += ${sapt.pfwd-flags}
+sapt.feature-flags += ${sapt.pbwd-flags}
+sapt.feature-flags += ${sapt.lcnt-flags}
+
+sapt.feature-flags += $(if $(findstring ${sapt.coh},1),1)
+sapt.feature-flags += $(filter-out 0, $(subst ${comma},${space},${sapt.rare}))
+sapt.feature-flags += $(if $(findstring ${sapt.unal},2),1 1,\
+		      $(if $(findstring ${sapt.unal},1),1))
+sapt.feature-flags += $(filter-out 0, $(subst ${comma},${space},${sapt.prov}))
+sapt.feature-flags += $(filter-out 0, $(subst ${comma},${space},${sapt.prov}))
+# yes, twice: provenance features are always corpus-specific
+
+# some features are optionally corpus-specific
+sapt.feature-flags += $(if $(findstring x,${sapt.pfwd}),${sapt.pfwd-flags})
+sapt.feature-flags += $(if $(findstring x,${sapt.pbwd}),${sapt.pbwd-flags})
+sapt.feature-flags += $(if $(findstring x,${sapt.logcnt}),${sapt.logcnt-flags})
+sapt.num-features   = $(words ${sapt.feature-flags})
+
+# $(info ${sapt.num-features} SAPT FEATURE FLAGS ${sapt.feature-flags})
+# $(foreach x,${sapt.feature-flags},$(info FEATURE FLAG |$x|))
+
+sapt.system_tag := ${ptable.source-factors}-${ptable.target-factors}
+sapt.system_tag += f$(strip ${sapt.pfwd})
+sapt.system_tag += b$(strip ${sapt.pbwd})
+sapt.system_tag += l$(strip ${sapt.logcnt})
+sapt.system_tag += c$(strip ${sapt.coh})
+sapt.system_tag += r$(strip ${sapt.rare})
+sapt.system_tag += p$(strip ${sapt.prov})
+sapt.system_tag += u$(strip ${sapt.unal})
+sapt.system_tag += p$(sapt.smooth)
+sapt.system_tag += a$(sapt.alpha)
+sapt.system_tag += n${sapt.sample}
+sapt.system_tag := $(subst $(space),.,${sapt.system_tag})
+
+#################################################################################
+# $1: path to mmapped data
+# $2: path to text data
+# add_text_ptabel and add_binary_ptable
+define add_sapt
+
+#$$(info MAPPED $1)
+#$$(info TEXT $2)
+$(call mmap_bitext,$(strip $2),$(strip $1))
+
+ffname   := PT$(words ${PTABLE_ENTRIES})
+MY_ENTRY := Mmsapt
+MY_ENTRY += name=$$(ffname)
+MY_ETNRY += input-factor=$$(strip $${ptable.source-factors})
+MY_ENTRY += output-factor=$$(strip $${ptable.target-factors})
+MY_ENTRY += num-features=$${sapt.num-features}
+MY_ENTRY += base=$(abspath $1)/ L1=${L1} L2=${L2}
+MY_ENTRY += $${sapt.parameters}
+PTABLE_ENTRIES += $$(subst $$(space),;,$${MY_ENTRY})
+
+MOSES_INI_PREREQ += $(addprefix $(strip $1)/${L1},.mct .tdx .sfa)
+MOSES_INI_PREREQ += $(addprefix $(strip $1)/${L2},.mct .tdx .sfa)
+MOSES_INI_PREREQ += $(strip $1)/${L1}-${L2}.mam
+MOSES_INI_PREREQ += $(strip $1)/${L1}-${L2}.lex
+
+endef
+#################################################################################

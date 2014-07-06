@@ -1,0 +1,48 @@
+# -*- makefile -*-
+
+# not really tested yet
+
+#################################################################################
+define create_lexical_reordering_table
+
+shardsdir := $(if ${phrase_extract.tmpdir},${phrase_extract.tmpdir},$(strip $3).shards)
+mystem := $(strip $1).$(strip $2)
+$${mystem}.gz: dmshards = $$(shell ls $$(shardsdir)/*.dst.gz 2>/dev/null)
+$${mystem}.gz: dm.type=$(word 1,$(subst -, ,$2))
+$${mystem}.gz: dm.orient=$(word 2,$(subst -, ,$2))
+$${mystem}.gz: $$(shardsdir)/extract.done
+	$$(lock)
+	${moses.score-reordering} \
+	<(${merge-sorted} \
+	$$(if $${dmshards},$${dmshards},$$(warning No dst shards found!))) \
+	${dmodel.smooth} $$@.lock/$$(notdir $(strip $1)). --model "$${dm.type} $${dm.orient} $2" 
+	mv $$@.lock/$$(notdir $(strip $1).$(strip $2)).gz $${@D}
+	$$(unlock)
+
+endef
+
+#################################################################################
+define add_binary_reordering_table
+
+$(call create_lexical_reordering_table,$5,$4,$6)
+
+mystem   := $(strip $5).$(strip $4)
+ffname   := LexicalReordering$(words ${DTABLE_ENTRIES})
+MY_ENTRY := LexicalReordering
+MY_ENTRY += name=$$(ffname)
+MY_ENTRY += input-factor=$(strip $1)
+MY_ENTRY += output-factor=$(strip $2) 
+MY_ENTRY += num-features=$(strip $3)
+MY_ENTRY += type=$(strip $4)
+MY_ENTRY += path=$$(abspath $${mystem})
+DTABLE_ENTRIES += $$(subst $$(space),;,$${MY_ENTRY})
+DTABLES        += $(strip $5).$(strip $4).binlexr.idx
+
+endef
+
+%.binlexr.idx :| %.gz
+	$(lock)
+	${MOSES_BIN}/processLexicalTable \
+	-in <(zcat -f $*.gz) -out $@.lock/$(notdir $*)
+	mv $@.lock/$(notdir $*).* ${@D}
+	$(unlock)

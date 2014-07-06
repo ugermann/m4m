@@ -1,0 +1,10 @@
+export snippet
+m4m/auto/lm.m4m: snippet := ${lm.snippet}
+m4m/auto/tm.m4m: snippet := ${tm.snippet}
+m4m/auto/%.m4m: Makefile $(wildcard ../m4m/config/default/*.cfg)
+	@echo "$$snippet" > $@
+
+
+m4m/auto/lm.m4m: Makefile 
+#-include m4m/auto/lm.m4m
+

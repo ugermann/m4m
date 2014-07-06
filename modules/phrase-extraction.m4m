@@ -1,0 +1,56 @@
+# -*- makefile -*-
+define phrase_extract_cmd
+${moses.extract-phrases} ${moses.extract} $(1:.aln.gz=) ${L1} ${L2} \
+-l $${ptable.max-phrase-length} -m $2
+endef
+
+#################################################################################
+# $1: destination directory
+# $2: L1 text
+# $3: L2 text
+# $4: symal file
+# normally, $2 ... $4 are default values ${pll.txt1} ${pll.txt2} ${pll.aln}
+
+define extract_phrases
+
+SHARDS = $$(foreach x, $${L1} $${L2} aln, $1/$$x-DONE)
+M4M_HISTORY += $1/extract.done
+wlexdir := $(dir $1)
+
+$1/${L1}-DONE: $(if $2,$2,$$(pll.txt1))
+	$$(lock)
+	zcat -f $$< \
+	| ${parallel} --pipe -k -N ${SHARDSIZE} "gzip > $${@D}/{#}.${L1}.gz" 
+	touch $$@
+	$$(unlock)
+
+$1/${L2}-DONE: $(if $3,$3,$$(pll.txt2))
+	$$(lock)
+	zcat -f $$< \
+	| ${parallel} --pipe -k -N ${SHARDSIZE} "gzip > $${@D}/{#}.${L2}.gz"
+	$$(unlock)
+
+$1/aln-DONE: $(if $4,$4,$$(pll.aln))
+	$$(lock)
+	zcat -f $$< \
+	| ${parallel} --pipe -k -N ${SHARDSIZE} "gzip > $${@D}/{#}.aln.gz"
+	$$(unlock)
+
+$1/extract.batch: $$(SHARDS)
+	$$(info SHARDS $1 $$(shell ls $${@D}/*.aln.gz))
+	$$(lock)
+	echo -n '' > $$@_
+	$$(foreach x, $$(shell ls $${@D}/*.aln.gz 2>/dev/null),\
+	echo "$$(call phrase_extract_cmd,$$x,$$(word 1,$${dmodels}))" >> $$@_;\
+	$$(foreach i, $$(shell seq 2 $$(words $${dmodels})),\
+	echo "$$(call phrase_extract_cmd,$$x,$$(word $$i,$${dmodels})) -x" >> $$@_))
+	mv $$@_ $$@;
+	$$(unlock)
+
+$1/extract.done: $1/extract.batch
+	$$(lock)
+	${parallel} -j$$(ptable.extract.in-parallel) < $1/extract.batch
+	touch $$@
+	$$(unlock)
+
+endef
