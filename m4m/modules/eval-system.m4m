@@ -1,27 +1,48 @@
 # -*- Makefile -*-
 
-%.plog: precmd = sync; echo 3 > /proc/sys/vm/drop_caches; ${procmon} -o $$(basename $$@).plog -c
-%.plog: %.multi-bleu
+# precmd ?=
+# %.plog: precmd = sync; echo 3 > /proc/sys/vm/drop_caches; ${procmon} -o $$(basename $$@).plog -c
+# %.plog: %.multi-bleu
+
+reffile = $(shell echo $(patsubst %.${L1},%.${L2},$(strip $1)) | perl -pe 's?/cfn[^/]+/?/cased/?')
+alnfile = $(shell echo $(patsubst %.${L1},%.symal,$(strip $1)) | perl -pe 's?/cfn[^/]+/?/cased/?')
+
+moses.ini   ?= 
+moses.flags ?= 
+moses.inputtype ?= $(call guess-inputtype,${moses.input})
+
+%.moses-out.wa: moses.flags += -alignment-output-file $*.output.wa
+%.moses-out.wa: %.moses-out
 
 %.multi-bleu: | %.cleaned 
 	$(lock)
 	${multi-bleu} ${bleu.ref} < $*.cleaned > $@_ && mv $@_ $@
 	$(unlock)
 
-moses.flags ?= 
-%.moses-out.wa: moses.flags += -alignment-output-file $*.output.wa
-%.moses-out.wa: %.moses-out
 
-# .SECONDEXPANSION:
-moses.ini ?= 
-%.moses-out: cmd  = ${moses} ${eval.decoder-flags} 
-%.moses-out: cmd += -f ${moses.ini} ${moses.flags}
-%.moses-out: cmd += -inputtype ${moses.inputtype} -i ${moses.input} 
+moses_eval_args = ${eval.decoder-flags}
+moses_eval_args += -f ${moses.ini} ${moses.flags}
+moses_eval_args += -inputtype ${moses.inputtype} -i ${moses.input} 
+
+simpe_eval  = ${MOSES_SCRIPTS}/server/sim-pe.py 
+simpe_eval += --[ -d -s ${MOSES_ROOT}/bin/mosesserver 
+simpe_eval += -r ${eval.ref} -a ${eval.aln} -p ${mserver.port} --]
+simpe_eval += --server-log /dev/stderr --serial
+
+define spe_eval 
+
+$(strip $1): moses.threads := 
+$(strip $1): moses  = ${MOSES_SCRIPTS}/server/sim-pe.py
+$(strip $1): moses += --[ -d -s ${MOSES_ROOT}/bin/mosesserver
+$(strip $1): moses += -r $${eval.ref} -a $${eval.aln}
+$(strip $1): moses += -p $${mserver.port}
+$(strip $1): moses += --] --serial
+
+endef
+
 %.moses-out: | ${moses.ini}
-	echo MOSES $^ 
 	$(lock)
-	echo "${cmd}" > $(basename $@).cmd
-	${precmd} ${cmd} > $@_ && mv $@_ $@
+	${moses} ${moses_eval_args} > $@_ && mv $@_ $@
 	$(unlock)
 
 %.cleaned: %.moses-out
@@ -34,7 +55,7 @@ moses.ini ?=
 	$(detruecase) < $*.cleaned > $@_ && mv $@_ $@
 	$(eval $(call unlock))
 
-
+#################################################################
 # $1: output base name
 # $2: system to be evaluated
 # $3: evaluation input
@@ -42,12 +63,13 @@ moses.ini ?=
 define bleu_eval
 
 EVALUATIONS += $1
-$1: moses.ini       := $2
+
 $1: moses.input     := $3
+$1: moses.ini       := $2
 $1: moses.inputtype := $(call guess-inputtype,$3)
-$1: bleu.ref        := $$(shell echo $(patsubst %.${L1},%.${L2},$3) | perl -pe 's?/cfn[^/]+/?/cased/?')
-$1: eval.ref        := $$(shell echo $(patsubst %.${L1},%.${L2},$3) | perl -pe 's?/cfn[^/]+/?/cased/?')
-$1: eval.aln        := $$(shell echo $(patsubst %.${L1},%.symal,$3) | perl -pe 's?/cfn[^/]+/?/cased/?')
+$1: bleu.ref        := $(call reffile,$3)
+$1: eval.ref        := $(call reffile,$3)
+$1: eval.aln        := $(call alnfile,$3)
 
 $1.moses-out:  | $2 $3
 $1.multi-bleu: | $(call reffiles,$3,$(dir $(patsubst %/,%,$(dir $3))))
@@ -57,20 +79,21 @@ endef
 
 EVALUATIONS :=
 
-eval.sets ?= $(patsubst %.${L1}.gz,%,$(subst /raw/,/cased/,$(wildcard ${WDIR}/crp/tst/raw/*.${L1}.gz)))
+eval.sets ?= $(patsubst %.${L1}.gz,%,\
+$(subst /raw/,/cased/,$(wildcard ${WDIR}/crp/tst/raw/*.${L1}.gz)))
 
-ifdef tune.runs
-define bleu_score_all_systems
+# ifdef tune.run
+# define bleu_score_all_systems
 
-$(foreach system,${SYSTEMS},\
-$(foreach tuneset,${tune.sets},\
-$(foreach evalset,${eval.sets},\
-$(foreach run,$(shell seq ${tune.runs}),\
-$(eval $(call bleu_eval,\
-${system}/eval/$(notdir ${tuneset})/${run}/$(notdir ${evalset}),\
-${system}/tuned/$(notdir ${tuneset})/${run}/moses.ini,\
-${evalset}.${L1},${moses.inputtype.plaintext},${evalset}.${L2}))))))
+# $(foreach system,${SYSTEMS},\
+# $(foreach tuneset,${tune.sets},\
+# $(foreach evalset,${eval.sets},\
+# $(foreach run,$(shell seq ${tune.run}),\
+# $(eval $(call bleu_eval,\
+# ${system}/eval/$(notdir ${tuneset})/${run}/$(notdir ${evalset}),\
+# ${system}/tuned/$(notdir ${tuneset})/${run}/moses.ini,\
+# ${evalset}.${L1},${moses.inputtype.plaintext},${evalset}.${L2}))))))
 
-endef
-endif
+# endef
+# endif
 

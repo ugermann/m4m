@@ -28,6 +28,7 @@ define create_moses_ini
 
 $(foreach prereq,${PTABLES} ${DTABLES} ${LMODELS} ${MOSES_INI_PREREQ},\
 $(call declare_moses_ini_prereq,$1,${prereq}))
+$(strip $1)/moses.ini.0: 
 	$$(lock)
 	echo '[input-factors]'                                         > $$@_
 	echo '$${moses.ini_input-factors}'                            >> $$@_

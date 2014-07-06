@@ -1,8 +1,11 @@
 # -*- makefile -*-
-
-# Makefile for building a Moses system from a word-aligned corpus
+# Makefile macros for building a Moses system from a word-aligned corpus
 # (c) 2011 - 2012 Ulrich Germann
 
+################################################################################
+# Below, 'track' means one side of the parallel bitext
+# $1: absolute path of the basename of the bitext track in text format
+# $2: destination directory of the memory-mapped bitext track
 define mmap_ttrack
 
 $2/$(notdir $1).mct: | $2/$(notdir $1).tdx
@@ -17,7 +20,10 @@ $2/$(notdir $1).sfa: | $(strip $1).txt.gz
 	$$(unlock)
 
 endef
+################################################################################
 
+
+################################################################################
 # $1: base name of word-aligned corpus in text format
 # $2: directory for mmapped bitext
 define mmap_bitext
@@ -41,4 +47,4 @@ $2/$(notdir $1)${L1}-${L2}.lex: | $2/$(notdir $1)${L1}-${L2}.mam
 	$$(unlock)
 
 endef
-
+################################################################################

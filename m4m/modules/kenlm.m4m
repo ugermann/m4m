@@ -1,11 +1,12 @@
 # -*- Makefile -*-
 
 # ${lm.training-data} must contain a list of files with training data
-%.kenlm:
-	$(if ${lm.training-data},,$(error No training data for language model found!))
+nolmtrndatamsg = Variable $$lm.training-data is empty!
+%.${lm.factor}.${lm.order}-grams.kenlm.${kenlm.type}: | ${lm.training-data}
+	$(if ${lm.training-data},,$(error ${nolmtrndatamsg}))
 	$(lock)
 	zcat -f ${lm.training-data} \
-	| ${kenlm.build} -o ${kenlm.order} -S${kenlm.memory} \
+	| ${kenlm.build} -o ${lm.order} -S${kenlm.memory} \
 	| ${kenlm.binarize} ${kenlm.type} /dev/stdin $@_ && mv $@_ $@
 	$(unlock)
 
@@ -19,12 +20,12 @@ define add_kenlm
 ffname := LM$(words ${LMODEL_ENTRIES})
 MY_ENTRY := KENLM
 MY_ENTRY += name=$$(ffname)
-MY_ENTRY += order=$2 
-MY_ENTRY += factor=$3
+MY_ENTRY += order=${lm.order} 
+MY_ENTRY += factor=${lm.factor}
 MY_ENTRY += num-features=1
-MY_ENTRY += lazyken=0
-MY_ENTRY += path=$(abspath $1)
+MY_ENTRY += lazyken=${kenlm.lazy}
+MY_ENTRY += path=$(abspath ${lm.file})
 LMODEL_ENTRIES += $$(subst $$(space),;,$${MY_ENTRY})
-LMODELS  += $(abspath $1)
+LMODELS  += $(abspath ${lm.file})
 
 endef
