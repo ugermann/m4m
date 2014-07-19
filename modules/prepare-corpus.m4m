@@ -20,6 +20,12 @@ trn.pll = $(sort $(notdir $(foreach d,raw tok cased,$(wildcard ${WDIR}/crp/trn/p
 trn.tok-pll = $(addprefix ${WDIR}/crp/trn/pll/tok/, $(call trn.pll,$1))
 trn.cased-pll = $(addprefix ${WDIR}/crp/trn/pll/cased/, $(call trn.pll,$1))
 
+${WDIR}/crp/tst/cased/%.symal: | ${WDIR}/crp/tst/tok/%.symal
+	ln $| $@
+
+${WDIR}/crp/dev/cased/%.symal: | ${WDIR}/crp/dev/tok/%.symal
+	ln $| $@
+
 define tokenize
 
 $2/tok/%.$3.gz: | $2/raw/%.$3.gz
