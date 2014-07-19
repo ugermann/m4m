@@ -9,7 +9,7 @@ sapt.parameters += prov=$(strip ${sapt.prov})
 sapt.parameters += rare=$(strip ${sapt.rare})
 sapt.parameters += unal=$(strip ${sapt.unal})
 sapt.parameters += smooth=$(strip ${sapt.smooth})
-sapt.parameters += samples=$(strip ${sapt.sample})
+sapt.parameters += sample=$(strip ${sapt.sample})
 sapt.parameters += workers=$(if $(findstring ${sapt.sample},0),16,1)
 sapt.parameters += lexalpha=$(strip $(sapt.alpha))
 
@@ -43,9 +43,9 @@ sapt.feature-flags += $(filter-out 0, $(subst ${comma},${space},${sapt.prov}))
 # yes, twice: provenance features are always corpus-specific
 
 # some features are optionally corpus-specific
-sapt.feature-flags += $(if $(findstring x,${sapt.pfwd}),${sapt.pfwd-flags})
-sapt.feature-flags += $(if $(findstring x,${sapt.pbwd}),${sapt.pbwd-flags})
-sapt.feature-flags += $(if $(findstring x,${sapt.logcnt}),${sapt.logcnt-flags})
+sapt.feature-flags += $(if $(findstring +,${sapt.pfwd}),${sapt.pfwd-flags})
+sapt.feature-flags += $(if $(findstring +,${sapt.pbwd}),${sapt.pbwd-flags})
+sapt.feature-flags += $(if $(findstring +,${sapt.logcnt}),${sapt.logcnt-flags})
 sapt.num-features   = $(words ${sapt.feature-flags})
 
 # $(info ${sapt.num-features} SAPT FEATURE FLAGS ${sapt.feature-flags})
