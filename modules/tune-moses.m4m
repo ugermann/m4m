@@ -38,13 +38,10 @@ define spe_tuning
 
 $$(info RUN $${run})
 $(strip $1): moses.threads := 1
-$(strip $1): moses = ${MOSES_SCRIPTS}/server/sim-pe.py
-$(strip $1): mserver.port := 77$$(shell printf '%02d' $${run})
-$(strip $1): mert.decoder-flags  = --[ -d
-$(strip $1): mert.decoder-flags += -s ${MOSES_ROOT}/bin/mosesserver
-$(strip $1): mert.decoder-flags += -r $${tune.ref} -a $${tune.aln}
-$(strip $1): mert.decoder-flags += -p $${mserver.port}
-$(strip $1): mert.decoder-flags += --] --serial --server-log $${mert.wdir}/mserver.log.$${mserver.port}
+$(strip $1): moses = ${MOSES_ROOT}/bin/simulate-pe
+$(strip $1): mert.decoder-flags  = --spe-src $${tune.src}
+$(strip $1): mert.decoder-flags += --spe-trg $${tune.ref}
+$(strip $1): mert.decoder-flags += --spe-aln $${tune.aln}
 
 endef
 ############################################################################
