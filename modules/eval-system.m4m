@@ -32,11 +32,10 @@ simpe_eval += --server-log /dev/stderr --serial
 define spe_eval 
 
 $(strip $1): moses.threads := 
-$(strip $1): moses  = ${MOSES_SCRIPTS}/server/sim-pe.py
-$(strip $1): moses += --[ -d -s ${MOSES_ROOT}/bin/mosesserver
-$(strip $1): moses += -r $${eval.ref} -a $${eval.aln}
-$(strip $1): moses += -p $${mserver.port}
-$(strip $1): moses += --] --serial
+$(strip $1): moses  = ${MOSES_ROOT}/bin/simulate-pe
+$(strip $1): moses += --spe-src $${moses.input}
+$(strip $1): moses += --spe-trg $${eval.ref} 
+$(strip $1): moses += --spe-aln $${eval.aln}
 
 endef
 
