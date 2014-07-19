@@ -1,7 +1,7 @@
 # -*- makefile -*-
 define phrase_extract_cmd
 ${moses.extract-phrases} ${moses.extract} $(1:.aln.gz=) ${L1} ${L2} \
--l $${ptable.max-phrase-length} -m $2
+-l ${ptable.max-phrase-length} -m $2
 endef
 
 #################################################################################
