@@ -63,7 +63,7 @@ $1.txt.gz: | ${merge-sorted}
 $1.txt.gz: | ${MOSES_BIN}/consolidate
 $1.txt.gz: | $1.tmp/fwd.scored.gz
 $1.txt.gz: | $1.tmp/bwd/scoring.done
-	$$(info PTABLE SMOOTHING: $$(ptable.smoothing) for system $${PTTYPE} ($$@}))
+	$$(info PTABLE SMOOTHING: $$(ptable.smoothing) for system $${SYSTEM} ($$@))
 	$$(lock)
 	${MOSES_BIN}/consolidate \
 	<(zcat -f $1.tmp/fwd.scored.gz) \
