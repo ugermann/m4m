@@ -12,7 +12,7 @@ endef
 L1 = $(shell echo  $(notdir $(shell dirname $$PWD)) | sed 's/-.*//')
 L2 = $(shell echo  $(notdir $(shell dirname $$PWD)) | sed 's/.*-//')
 
-DATA=/fs/thor1/hieu/RELEASE-2.1/models/${L1}-${L2}
+DATA=${MOSES_RELEASE_2.1}/models/${L1}-${L2}
 
 # determine casing and casing tags:
 casing = $(if $(findstring t,$(wildcard ${DATA}/corpus/*truecased.1.$1)),true,lower)case

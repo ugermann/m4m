@@ -1,0 +1,7 @@
+#-*- makefile -*-
+# Copy this file to local.cfg before editing!
+# local.cfg should NOT be checked into the git repository
+
+# Path to Moses Release 2.1 
+MOSES_RELEASE_2.1 = ${HOME}/Moses-R2.1
+
