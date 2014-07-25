@@ -2,11 +2,13 @@
 
 # ${lm.training-data} must contain a list of files with training data
 nolmtrndatamsg = Variable $$lm.training-data is empty!
-%.${lm.factor}.${lm.order}-grams.kenlm.${kenlm.type}: | ${lm.training-data}
+#%.${lm.factor}.${lm.order}-grams.kenlm.${kenlm.type}: | ${lm.training-data}
+
+${kenlm.file}: | ${lm.training-data}
 	$(if ${lm.training-data},,$(error ${nolmtrndatamsg}))
 	$(lock)
 	zcat -f ${lm.training-data} \
-	| ${kenlm.build} -o ${lm.order} -S${kenlm.memory} \
+	| ${kenlm.build} -o ${lm.order} -S${kenlm.memory} -T $@.lock/lm \
 	| ${kenlm.binarize} ${kenlm.type} /dev/stdin $@_ && mv $@_ $@
 	$(unlock)
 
