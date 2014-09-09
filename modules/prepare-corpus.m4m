@@ -30,8 +30,9 @@ define tokenize
 
 $2/tok/%.$3.gz: | $2/raw/%.$3.gz
 	$$(lock)
-	zcat $$(word 1,$$|) | ${pre-tokenize.$1} \
-	| ${parallel} -j4 --pipe -k ${tokenize.$1} \
+	zcat $$(word 1,$$|) \
+	| ${pre-tokenize.$1} \
+	| ${parallel} --pipe -k ${tokenize.$1} \
 	| gzip > $$@_
 	mv $$@_ $$@
 	$$(unlock)
@@ -47,7 +48,9 @@ $2/cased/%.$3.gz: caser  = $${run-truecaser}
 $2/cased/%.$3.gz: caser += -model ${WDIR}/aux/truecasing-model.$1
 $2/cased/%.$3.gz: | $2/tok/%.$3.gz  ${WDIR}/aux/truecasing-model.$1
 	$$(lock)
-	zcat $$(word 1, $$|) | $${parallel} --pipe -k $${caser} | gzip > $$@_
+	zcat $$(word 1, $$|) \
+	| $${parallel} --pipe -k $${caser} \
+	| gzip > $$@_
 	mv $$@_ $$@
 	$$(unlock)
 $2/cased/%.$3: | $2/cased/%.$3.gz 
@@ -63,7 +66,9 @@ define lowercase
 $2/cased/%.$3.gz: caser  = $${run-lowercaser}
 $2/cased/%.$3.gz: | $2/tok/%.$3.gz
 	$$(lock)
-	zcat $$| | ${parallel} -j4 --pipe -k $${caser} | gzip > $$@_
+	zcat $$| \
+	| ${parallel} -j4 --pipe -k $${caser} \
+	| gzip > $$@_
 	mv $$@_ $$@
 	$$(unlock)
 

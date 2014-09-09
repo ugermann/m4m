@@ -57,13 +57,22 @@ $(gizout)/${L1}-${L2}.symal.gz: | $(gizout)/${L2}-${L1}.A3.final.gz $(giza2bal.p
 
 # merge alignments produced by mgiza
 $(gizout)/%.A3.final.gz: | $(giztmp)/%/mgiza.DONE 
-	mkdir -p ${@D}
 	$(lock)
 	$(mgiza.merge) $(shell ls $(giztmp)/$*/$*.A3.final.part* 2>/dev/null) | gzip > $@_
 	mv $@_ $@ 
+	rm $(giztmp)/$*/$*.A3.final.part* 
 	$(unlock)
 
 # run mgiza:
+
+# INLINEARGS  = -coocurrencefile ${S}_${T}.cooc 
+# INLINEARGS += -corpusfile ${S}_${T}.snt 
+# INLINEARGS += -targetvocabularyclasses ${T}.classes 
+# INLINEARGS += -targetvocabularyfile ${T}.vcb 
+# INLINEARGS += -sourcevocabularyclasses ${S}.classes 
+# INLINEARGS += -sourcevocabularyfile ${S}.vcb 
+# INLINEARGS += -ncpus 8
+%/mgiza.DONE:
 %/mgiza.DONE: | %/mgiza.cfg
 	$(lock)
 	$(mgiza) $| && touch $@
@@ -83,12 +92,14 @@ mkcls_cmd = $(call stream,$(1),$(2)) | ${mkcls} $(mkcls_args) -p/dev/stdin -V$(3
 # mkcls: -p: input data 
 # mkcls: -V: word classes (output)
 
-$(giztmp)/%.vcb.classes: ${mkcls}
-$(giztmp)/%.vcb.classes: | $(gizaln.in)
+#$(info MKCLS=${mkcls})
+$(giztmp)/%.vcb.classes: | ${mkcls}
+#$(giztmp)/%.vcb.classes: | $(gizaln.in)
+$(giztmp)/%.vcb.classes: 
 	@echo CREATING $@
 	$(lock)
-	mkdir -p $(@D)
-	@$(call mkcls_cmd,$|,$*,$@_) && mv $@_ $@
+	mkdir -p $(gizaln.in)
+	@$(call mkcls_cmd,$(gizaln.in),$*,$@_) && mv $@_ $@
 	@mv $@_.cats $@.cats
 	$(unlock)
 
@@ -145,32 +156,43 @@ $(giztmp)/${L1}-${L2}/mgiza.cfg: | $(giztmp)/${L1}-${L2}.cooc
 $(giztmp)/${L1}-${L2}/mgiza.cfg: | $(giztmp)/${L1}-${L2}.snt 
 $(giztmp)/${L2}-${L1}/mgiza.cfg: | $(giztmp)/${L2}-${L1}.cooc 
 $(giztmp)/${L2}-${L1}/mgiza.cfg: | $(giztmp)/${L2}-${L1}.snt 
-$(giztmp)/${L1}-${L2}/mgiza.cfg \
-$(giztmp)/${L2}-${L1}/mgiza.cfg: | \
-	$(giztmp)/${L1}.vcb $(giztmp)/${L1}.vcb.classes \
-	$(giztmp)/${L2}.vcb $(giztmp)/${L2}.vcb.classes 
-	mkdir -p $(dir $@)
-	touch $@
-	@echo "s    ${V1}"   >> $@
-	@echo "t    ${V2}"   >> $@
-	@echo "c    ${SNT}"  >> $@
-	@echo "cooc ${COOC}" >> $@
-	@echo "m1   ${m1}"   >> $@
-	@echo "m2   ${m2}"   >> $@
-	@echo "mh   ${mh}"   >> $@
-	@echo "m3   ${m3}"   >> $@
-	@echo "m4   ${m4}"   >> $@
-	@echo "t1   ${m1}"   >> $@
-	@echo "t2   ${m2}"   >> $@
-	@echo "th   ${mh}"   >> $@
-	@echo "t3   ${m3}"   >> $@
-	@echo "t4   ${m4}"   >> $@
-	@echo "o    ${ODIR}" >> $@
-	@echo "model4smoothfactor ${model4smoothfactor}"   >> $@
-	@echo "onlyaldumps ${onlyaldumps}"                 >> $@
-	@echo "nodumps ${nodumps}"                         >> $@
-	@echo "nsmooth ${nsmooth}"                         >> $@
-	@echo "NCPUS ${NCPUS}"                             >> $@
+
+$(giztmp)/${L1}-${L2}/mgiza.cfg: | $(giztmp)/${L1}.vcb 
+$(giztmp)/${L1}-${L2}/mgiza.cfg: | $(giztmp)/${L1}.vcb.classes 
+$(giztmp)/${L1}-${L2}/mgiza.cfg: | $(giztmp)/${L2}.vcb 
+$(giztmp)/${L1}-${L2}/mgiza.cfg: | $(giztmp)/${L2}.vcb.classes 
+
+$(giztmp)/${L2}-${L1}/mgiza.cfg: | $(giztmp)/${L1}.vcb 
+$(giztmp)/${L2}-${L1}/mgiza.cfg: | $(giztmp)/${L1}.vcb.classes 
+$(giztmp)/${L2}-${L1}/mgiza.cfg: | $(giztmp)/${L2}.vcb 
+$(giztmp)/${L2}-${L1}/mgiza.cfg: | $(giztmp)/${L2}.vcb.classes 
+
+$(giztmp)/${L1}-${L2}/mgiza.cfg\
+$(giztmp)/${L2}-${L1}/mgiza.cfg:
+	$(lock)
+	touch $@_
+	@echo "s    ${V1}"   >> $@_
+	@echo "t    ${V2}"   >> $@_
+	@echo "c    ${SNT}"  >> $@_
+	@echo "cooc ${COOC}" >> $@_
+	@echo "m1   ${m1}"   >> $@_
+	@echo "m2   ${m2}"   >> $@_
+	@echo "mh   ${mh}"   >> $@_
+	@echo "m3   ${m3}"   >> $@_
+	@echo "m4   ${m4}"   >> $@_
+	@echo "t1   ${m1}"   >> $@_
+	@echo "t2   ${m2}"   >> $@_
+	@echo "th   ${mh}"   >> $@_
+	@echo "t3   ${m3}"   >> $@_
+	@echo "t4   ${m4}"   >> $@_
+	@echo "o    ${ODIR}" >> $@_
+	@echo "model4smoothfactor ${model4smoothfactor}"   >> $@_
+	@echo "onlyaldumps ${onlyaldumps}"                 >> $@_
+	@echo "nodumps ${nodumps}"                         >> $@_
+	@echo "nsmooth ${nsmooth}"                         >> $@_
+	@echo "NCPUS ${NCPUS}"                             >> $@_
+	mv $@_ $@
+	$(unlock)
 # # ------------------------------------------------------------------------------
 # sanity checks
 ifeq ($(gizaln),)
@@ -179,3 +201,5 @@ endif
 ifeq ($(gizaln.in),)
 $(warning No directory for Giza++ training data specified!)
 endif
+
+

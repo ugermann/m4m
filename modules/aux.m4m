@@ -17,13 +17,13 @@
 
 ifneq ($(filter n,${MAKEFLAGS}),n)
 define lock
-@mkdir -p ${@D};
+@mkdir -p ${@D}
 @mkdir $@.lock
 @echo "Started at $(shell date) by process $(shell echo $$PPID) on host $(shell hostname)" \
 	> $@.lock/owner
 endef
 else
-lock := 
+lock :=  
 endif
 
 ifneq ($(filter n, ${MAKEFLAGS}),n)

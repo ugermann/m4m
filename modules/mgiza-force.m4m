@@ -1,0 +1,121 @@
+# -*- makefile -*-
+# Makefile for forced alignment with giza
+
+omgiza = ${HOME}/omgiza/bin/mgiza 
+
+# $1 - source language tag
+# $2 - target language tag
+# $3 - stem of output files
+# $4 - location of the mgiza models to be loaded
+define mgiza_force2
+
+$3.$1-$2.cooc: | $(snt2cooc) $3.$1.vcb $3.$2.vcb $3.$1-$2.snt
+	$$(lock)
+	$(snt2cooc) $$@_ $3.$1.vcb $3.$2.vcb $3.$1-$2.snt && mv $$@_ $$@
+	$$(unlock)
+
+$3.$1-$2.A3.final.gz: mgiza_mdl := $4/$1-$2
+$3.$1-$2.A3.final.gz: | $3.${L1}.vcb.classes $3.${L2}.vcb.classes
+$3.$1-$2.A3.final.gz: | $3.$1-$2.cooc $4/$1-$2/mgiza.cfg
+	$$(lock)
+	$(mgiza) $${mgiza_mdl}/mgiza.cfg -restart 11 \
+	-ml 1000 -v 0 -onlyaldumps 1 \
+	-c $3.$1-$2.snt -coocurrencefile $3.$1-$2.cooc \
+	-s $3.$1.vcb -t $3.$2.vcb \
+	-sourcevocabularyclasses $3.$1.vcb.classes \
+	-targetvocabularyclasses $3.$2.vcb.classes \
+	-m1 0 -m2 0 -mh 0 -m3 0 -m4 1 \
+	-models $${mgiza_mdl}/$1-$2 -o $3.$1-$2
+	$(mgiza.merge) $3.$1-$2.A3.final.part* | gzip > $$@_ && mv $$@_ $$@
+	rm $3.$1-$2.A3.final.part*
+	$$(unlock)
+
+endef
+
+# ignore_me:
+# 	# paste -d'\n' $1.${L1} $1.${L2} \
+# 	# | head -n10 \
+# 	# | perl -e 'while ($$$$x = <> and $$$$y = <>) { chomp $$$$x; chomp $$$$y; print "<src>$$$$y</src> <trg>$$$$x</trg>\n" };'
+# 	#
+# 	# -t1 0 -t2 0 -th 0 -t3 0 \
+# 	# -onlineMode 1 -ncpus 1 \
+# 	# -c $3.$1-$2.snt -coocurrencefile $4/$1-$2.cooc \
+# 	# -previoust   $${mgiza_mdl}/$$(notdir $${mgiza_mdl}).t3.final \
+# 	# -previousa   $${mgiza_mdl}/$$(notdir $${mgiza_mdl}).a3.final \
+# 	# -previousd   $${mgiza_mdl}/$$(notdir $${mgiza_mdl}).d3.final \
+# 	# -previousn   $${mgiza_mdl}/$$(notdir $${mgiza_mdl}).n3.final \
+# 	# -previousd4  $${mgiza_mdl}/$$(notdir $${mgiza_mdl}).d4.final \
+# 	# -previousd42 $${mgiza_mdl}/$$(notdir $${mgiza_mdl}).D4.final \
+# 	# -previousp0 `cat $${mgiza_mdl}/$$(notdir $${mgiza_mdl}).p0_3.final` \
+# 	# -previoushmm $${mgiza_mdl}/$$(notdir $${mgiza_mdl}).hhmm.$(shell printf "%03d" ${giza.hmm-iterations}) \
+# 	#
+# 	# -o $(dirname $3) > $3.$1-$2.A3.final.part-000 \
+# 	# < <(paste -d'\n' $1.${L1} $1.${L2} | head -n10 \
+# 	# | perl -e 'while ($$$$x = <> and $$$$y = <>) { chomp $$$$x; chomp $$$$y; print "<src>$$$$y</src> <trg>$$$$x</trg>\n" };') 
+
+
+
+
+# $1 - stem of text to be force-aligned
+# $2 - stem of destination files
+# $3 - stem of tmp dir of underlying mgiza run that created the models
+define mgiza_force
+
+$2.%.vcb.classes: | $3/%.vcb.classes
+	ln $$| $$@
+
+$2.${L1}.vcb: | $2.${L1}-${L2}.snt
+$2.${L2}.vcb: | $2.${L1}-${L2}.snt
+$2.${L2}-${L1}.snt: | $2.${L1}-${L2}.snt
+
+$2.${L1}-${L2}.snt: | ${MOSES_SCRIPTS}/plain2snt-hasvcb.py
+$2.${L1}-${L2}.snt: | $3/${L1}.vcb
+$2.${L1}-${L2}.snt: | $3/${L2}.vcb
+	$$(lock)
+	${MOSES_SCRIPTS}/plain2snt-hasvcb.py \
+	$3/${L1}.vcb $3/${L2}.vcb <(zcat -f $1.${L1}.gz | head -n100) <(zcat -f $1.${L2}.gz| head -n100) \
+	$2.${L1}-${L2}.snt_ $2.${L2}-${L1}.snt_ $2.${L1}.vcb_ $2.${L2}.vcb_ \
+	&& mv $2.${L1}-${L2}.snt_ $2.${L1}-${L2}.snt \
+	&& mv $2.${L2}-${L1}.snt_ $2.${L2}-${L1}.snt \
+	&& mv $2.${L1}.vcb_ $2.${L1}.vcb \
+	&& mv $2.${L2}.vcb_ $2.${L2}.vcb 
+	$$(unlock)
+
+$(call mgiza_force2,${L1},${L2},$2,$3)
+$(call mgiza_force2,${L2},${L1},$2,$3)
+
+$2.${L1}.txt.gz: a3file = $2.${L2}-${L1}.A3.final.gz
+$2.${L1}.txt.gz: | $2.${L2}-${L1}.A3.final.gz
+	$$(lock)
+	(zcat $$(a3file) | perl -ne 'print if ++$$$$ctr%3 == 2;' | gzip > $$@_) && mv $$@_ $$@
+	$$(unlock)
+
+$2.${L2}.txt.gz: a3file = $2.${L1}-${L2}.A3.final.gz
+$2.${L2}.txt.gz: | $2.${L1}-${L2}.A3.final.gz
+	$$(lock)
+	(zcat $$(a3file) | perl -ne 'print if ++$$$$ctr%3 == 2;' | gzip > $$@_) && mv $$@_ $$@
+	$$(unlock)
+
+$2.${L1}-${L2}.symal.gz: A3fwd = $2.${L1}-${L2}.A3.final.gz
+$2.${L1}-${L2}.symal.gz: A3bwd = $2.${L2}-${L1}.A3.final.gz
+$2.${L1}-${L2}.symal.gz:| $2.${L1}-${L2}.A3.final.gz
+$2.${L1}-${L2}.symal.gz:| $2.${L2}-${L1}.A3.final.gz
+	$$(lock)
+	$(giza2bal.pl) -d 'gunzip -c $${A3fwd}' -i 'gunzip -c $${A3bwd}' \
+	| $(symal) $(symal_args) | perl -pe 's/^.*{##}\s+//' | gzip > $$@_ && mv $$@_ $$@
+	$$(unlock)
+
+endef 
+
+##$(foreach t,${tune.sets},$(info $(call mgiza_force,$t,${WDIR}/crp/dev/aln/$(notdir $t),${giztmp})))
+##$(foreach t,${tune.sets},$(eval $(call mgiza_force,$t, $(notdir $t),${giztmp})))
+$(foreach t,${tune.sets},$(eval $(call mgiza_force,$t,${WDIR}/crp/dev/aln/$(notdir $t),${giztmp})))
+#$(foreach t,crp/trn/pll/cased/europarl-v7.de-en,\
+#$(eval $(call mgiza_force,$t,${WDIR}/crp/dev/aln/$(notdir $t),${giztmp})))
+
+##$(foreach t,${tune.sets},$(info $t);$(info try: ${WDIR}/crp/dev/aln/$(notdir $t).${L1}-${L2}.symal.gz))
+##$(foreach t,$(lastword ${tune.sets}),$(eval try: $(notdir $t).${L1}-${L2}.symal.gz))
+$(foreach t,$(lastword ${tune.sets}),$(eval try: ${WDIR}/crp/dev/aln/$(notdir $t).${L1}-${L2}.symal.gz))
+#$(foreach t,crp/trn/pll/cased/europarl-v7.de-en,\
+#$(eval try: ${WDIR}/crp/dev/aln/$(notdir $t).${L1}-${L2}.symal.gz))
+
