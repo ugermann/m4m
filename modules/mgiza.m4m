@@ -34,22 +34,22 @@ other = $(if $(findstring $(1),${L1}),${L2},${L1})
 fwd   = $(1)-$(call other,$(1))
 bwd   = $(call other,$(1))-$(1)
 
-$(gizout)/${L1}.txt.gz: a3file = $(gizout)/${L2}-${L1}.A3.final.gz
-$(gizout)/${L1}.txt.gz: | $(gizout)/${L2}-${L1}.A3.final.gz
+$(gizout)/${L1}.txt.gz: a3file = $(gizout)/${L1}-${L2}.A3.final.gz
+$(gizout)/${L1}.txt.gz: | $(gizout)/${L1}-${L2}.A3.final.gz
 	$(lock)
 	(zcat $(a3file) | perl -ne 'print if ++$$ctr%3 == 2;' | gzip > $@_) && mv $@_ $@
 	$(unlock)
 
-$(gizout)/${L2}.txt.gz: a3file = $(gizout)/${L1}-${L2}.A3.final.gz
-$(gizout)/${L2}.txt.gz: | $(gizout)/${L1}-${L2}.A3.final.gz
+$(gizout)/${L2}.txt.gz: a3file = $(gizout)/${L2}-${L1}.A3.final.gz
+$(gizout)/${L2}.txt.gz: | $(gizout)/${L2}-${L1}.A3.final.gz
 	$(lock)
 	(zcat $(a3file) | perl -ne 'print if ++$$ctr%3 == 2;' | gzip > $@_) && mv $@_ $@
 	$(unlock)
 
-$(gizout)/${L1}-${L2}.symal.gz: A3fwd = $(gizout)/${L1}-${L2}.A3.final.gz 
-$(gizout)/${L1}-${L2}.symal.gz: A3bwd = $(gizout)/${L2}-${L1}.A3.final.gz 
-$(gizout)/${L1}-${L2}.symal.gz: | $(gizout)/${L1}-${L2}.A3.final.gz 
-$(gizout)/${L1}-${L2}.symal.gz: | $(gizout)/${L2}-${L1}.A3.final.gz $(giza2bal.pl)
+$(gizout)/${L1}-${L2}.symal.gz: A3fwd = $(gizout)/${L2}-${L1}.A3.final.gz 
+$(gizout)/${L1}-${L2}.symal.gz: A3bwd = $(gizout)/${L1}-${L2}.A3.final.gz 
+$(gizout)/${L1}-${L2}.symal.gz: | $(gizout)/${L2}-${L1}.A3.final.gz 
+$(gizout)/${L1}-${L2}.symal.gz: | $(gizout)/${L1}-${L2}.A3.final.gz $(giza2bal.pl)
 	$(lock)
 	$(giza2bal.pl) -d 'gunzip -c ${A3fwd}' -i 'gunzip -c ${A3bwd}' \
 	| $(symal) $(symal_args) | perl -pe 's/^.*{##}\s+//' | gzip > $@_ && mv $@_ $@
@@ -148,14 +148,14 @@ $(giztmp)/%/mgiza.cfg: SNT  = $(giztmp)/${FROM}-${TO}.snt
 $(giztmp)/%/mgiza.cfg: COOC = $(giztmp)/${FROM}-${TO}.cooc
 $(giztmp)/%/mgiza.cfg: ODIR = $(giztmp)/${FROM}-${TO}/${FROM}-${TO}
 #$(giztmp)/%/mgiza.cfg: | $(giztmp)/%.cooc $(giztmp)/%.snt 
-$(giztmp)/${L1}-${L2}/mgiza.cfg: FROM = ${L1}
-$(giztmp)/${L1}-${L2}/mgiza.cfg: TO   = ${L2}
-$(giztmp)/${L2}-${L1}/mgiza.cfg: FROM = ${L2}
-$(giztmp)/${L2}-${L1}/mgiza.cfg: TO   = ${L1}
-$(giztmp)/${L1}-${L2}/mgiza.cfg: | $(giztmp)/${L1}-${L2}.cooc 
-$(giztmp)/${L1}-${L2}/mgiza.cfg: | $(giztmp)/${L1}-${L2}.snt 
-$(giztmp)/${L2}-${L1}/mgiza.cfg: | $(giztmp)/${L2}-${L1}.cooc 
-$(giztmp)/${L2}-${L1}/mgiza.cfg: | $(giztmp)/${L2}-${L1}.snt 
+$(giztmp)/${L1}-${L2}/mgiza.cfg: FROM = ${L2}
+$(giztmp)/${L1}-${L2}/mgiza.cfg: TO   = ${L1}
+$(giztmp)/${L2}-${L1}/mgiza.cfg: FROM = ${L1}
+$(giztmp)/${L2}-${L1}/mgiza.cfg: TO   = ${L2}
+$(giztmp)/${L1}-${L2}/mgiza.cfg: | $(giztmp)/${L2}-${L1}.cooc 
+$(giztmp)/${L1}-${L2}/mgiza.cfg: | $(giztmp)/${L2}-${L1}.snt 
+$(giztmp)/${L2}-${L1}/mgiza.cfg: | $(giztmp)/${L1}-${L2}.cooc 
+$(giztmp)/${L2}-${L1}/mgiza.cfg: | $(giztmp)/${L1}-${L2}.snt 
 
 $(giztmp)/${L1}-${L2}/mgiza.cfg: | $(giztmp)/${L1}.vcb 
 $(giztmp)/${L1}-${L2}/mgiza.cfg: | $(giztmp)/${L1}.vcb.classes 
