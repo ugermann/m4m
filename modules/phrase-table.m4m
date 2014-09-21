@@ -89,6 +89,11 @@ $1.tmp/bwd/scoring.done: | $${wlexdir}/${L1}-given-${L2}.lex.gz
 	$${@D}/scored $$(smooth) --Inverse && touch $$@
 	$$(unlock)
 
+$1.%.gz: $1.txt.gz
+	$$(lock)
+	zcat $1.txt.gz | ${filter-pt} -n $$* | gzip > $$@_ && mv $$@_ $$@
+	$$(unlock)
+
 endef 
 # end of create_phrase_table
 #################################################################################
@@ -151,99 +156,6 @@ PTABLE_ENTRIES += $$(subst $$(space),;,$${MY_ENTRY})
 PTABLES        += $(strip $4).txt.gz
 
 endef
-#################################################################################
-
-# .SECONDEXPANSION:
-
-
-# #################################################################################
-# # add_dynsa_pt: add a dynamic suffix array phrase table
-# # $1,$2,$3: source and target factors, number of features
-# # $4,$5,$6: source and target text (gzipped), wrd-aln. in gzipped symal format
-# #--------------------------------------------------------------------------------
-# define add_dynsa_phrase_table
-
-# ffname   := TranslationModel$(words ${PTABLE_ENTRIES})
-# MY_ENTRY := PhraseDictionaryDynSuffixArray
-# MY_ENTRY += name=$$(ffname)
-# MY_ENTRY += input-factor=$(strip $1)
-# MY_ENTRY += output-factor=$(strip $2)
-# MY_ENTRY += num-features=$(strip $3)
-# MY_ENTRY += source=$(abspath $4)
-# MY_ENTRY += target=$(abspath $5)
-# MY_ENTRY += alignment=$(strip $6)
-# MOSES_INI_PREREQ += $4 $5 $6
-# PTABLE_ENTRIES += $$(subst $$(space),;,$${MY_ENTRY})
-# PTABLES        += $(strip $4) $(strip $5) $(strip $6)
-
-# endef
-
-#################################################################################
-# define sapt_set_system_tag
-
-# mmsapt.extra-parameters := pfwd=$$(strip $${mmsapt.pfwd})
-# mmsapt.extra-parameters += pbwd=$$(strip $${mmsapt.pbwd})
-# mmsapt.extra-parameters += logcnt=$$(strip $${mmsapt.logcnt})
-# mmsapt.extra-parameters += coh=$$(strip $${mmsapt.coh})
-# mmsapt.extra-parameters += prov=$$(strip $${mmsapt.prov})
-# mmsapt.extra-parameters += rare=$$(strip $${mmsapt.rare})
-# mmsapt.extra-parameters += unal=$$(strip $${mmsapt.unal})
-# mmsapt.extra-parameters += smooth=$$(strip $${mmsapt.smooth})
-# mmsapt.extra-parameters += samples=$$(strip $${mmsapt.samples})
-# mmsapt.extra-parameters += workers=$$(if $$(findstring $${mmsapt.samples},0),16,1)
-# mmsapt.extra-parameters += lexalpha=$$(strip $$(mmsapt.alpha))
-
-# # determine the number of features
-# # first add feature flags of features that may be duplicated
-# mmsapt.pfwd-features := $$(if $$(findstring g,$${mmsapt.pfwd}),1)
-# mmsapt.pfwd-features += $$(if $$(findstring s,$${mmsapt.pfwd}),1)
-# mmsapt.pfwd-features += $$(if $$(findstring r,$${mmsapt.pfwd}),1)
-# $$(if $$(findstring +,\
-# $${mmsapt.pfwd}),mmsapt.pfwd-features += $${mmsapt.pfwd-features})
-
-# mmsapt.pbwd-features := $$(if $$(findstring g,$${mmsapt.pbwd}),1)
-# mmsapt.pbwd-features += $$(if $$(findstring s,$${mmsapt.pbwd}),1)
-# mmsapt.pbwd-features += $$(if $$(findstring r,$${mmsapt.pbwd}),1)
-# $$(if $$(findstring +,\
-# $${mmsapt.pbwd}),mmsapt.pbwd-features += $${mmsapt.pbwd-features})
-
-# mmsapt.lcnt-features := $$(if $$(findstring r1,$${mmsapt.logcnt}),1)
-# mmsapt.lcnt-features += $$(if $$(findstring s1,$${mmsapt.logcnt}),1)
-# mmsapt.lcnt-features += $$(if $$(findstring g1,$${mmsapt.logcnt}),1)
-# mmsapt.lcnt-features += $$(if $$(findstring j,$${mmsapt.logcnt}),1)
-# mmsapt.lcnt-features += $$(if $$(findstring r2,$${mmsapt.logcnt}),1)
-# $$(if $$(findstring +,\
-# $${mmsapt.logcnt}),mmsapt.lcnt-features += $${mmsapt.lcnt-features})
-
-# mmsapt.feature-flags := $${mmsapt.pfwd-flags}
-# mmsapt.feature-flags += $${mmsapt.pbwd-flags}
-# mmsapt.feature-flags += $${mmsapt.lcnt-flags}
-# mmsapt.feature-flags += $$(if $$(findstring $${mmsapt.coh},1),1)
-# mmsapt.feature-flags += $$(filter-out 0, $$(subst $${comma},$${space},$${mmsapt.rare}))
-# mmsapt.feature-flags += $$(if $$(findstring $${mmsapt.unal},2),1 1,\
-# 			$$(if $$(findstring $${mmsapt.unal},1),1))
-# mmsapt.feature-flags += $$(filter-out 0, $$(subst $${comma},$${space},$${mmsapt.prov}))
-# mmsapt.feature-flags += $$(filter-out 0, $$(subst $${comma},$${space},$${mmsapt.prov}))
-# # yes, twice: provenance features are always corpus-specific
-# # the two lexical features are currently always included:
-# mmsapt.feature-flags += 1 1 
-
-# mmsapt.num-features  := $$(words $${mmsapt.feature-flags})
-
-# mmsapt.system_tag := $${ptable.source-factors}-$${ptable.target-factors}
-# mmsapt.system_tag += f-$$(strip $${mmsapt.pfwd})
-# mmsapt.system_tag += b-$$(strip $${mmsapt.pbwd})
-# mmsapt.system_tag += l-$$(strip $${mmsapt.logcnt})
-# mmsapt.system_tag += c-$$(strip $${mmsapt.coh})
-# mmsapt.system_tag += r-$$(strip $${mmsapt.rare})
-# mmsapt.system_tag += p-$$(strip $${mmsapt.prov})
-# mmsapt.system_tag += u-$$(strip $${mmsapt.unal})
-# mmsapt.system_tag += p-$$(mmsapt.smooth)
-# mmsapt.system_tag += a-a$$(mmsapt.alpha)
-# mmsapt.system_tag += n-$${mmsapt.sample}
-# mmsapt.system_tag := $$(subst $$(space),.,$${mmsapt.system_tag})
-
-# endef
 #################################################################################
 
 # make sure we have all the tools
