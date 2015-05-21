@@ -1,0 +1,19 @@
+# -*- makefile -*-
+.PHONY: safeguard1 safeguard2 nil
+all: safeguard1
+nil:
+
+$(filter-out data lm clone common nil,${MAKECMDGOALS}): safeguard1
+data lm clone: safeguard2
+
+# allow real runs only if the current directory matches the system description
+safeguard1:
+	$(if $(filter -n,${MAKEFLAGS}),,\
+	$(if $(findstring ${WDIR},${SYSTEM}),,\
+	$(error You are not in the right directory. Clone first!)))
+
+# on the other hand run data, clone, lm, common only from 'empty'
+# as these resources are shared
+safeguard2:
+	$(if $(findstring $(notdir ${WDIR}),empty),,\
+	$(error You should run make only from 'empty' for targets clone, data, lm, common!))
