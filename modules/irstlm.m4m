@@ -1,0 +1,51 @@
+#-*- Makefile -*-
+
+# ${lm.training-data} must contain a list of files with training data
+nolmtrndatamsg = Variable $$lm.training-data is empty!
+
+# $1: arpa file
+# $2: order
+# $3: parallelism
+# $4: training data
+define create_arpalm_via_irst
+
+$1:| $4
+	$(if $2,,$(error ${nolmtrndatamsg}))
+	$$(lock)
+	$(irstlm.build) -n $2 -k $3 -i "zcat -f $4" -o $$@_ && mv $$@_ $$@
+	$$(unlock)
+
+endef
+
+lm.arpafile = $(patsubst %.blm,%.arpa,${lm.file})
+define add_irstlm
+
+$(if $(filter ${lm.arpafile},${M4M_HISTORY}),,\
+$(call create_arpalm_via_irst,${lm.arpafile},${lm.order},${irstlm.shards},\
+${lm.training-data}))
+
+M4M_HISTORY += ${lm.arpafile}
+
+ffname := LM$(words ${LMODEL_ENTRIES})
+MY_ENTRY := IRSTLM
+MY_ENTRY += name=$$(ffname)
+MY_ENTRY += order=${lm.order} 
+MY_ENTRY += factor=${lm.factor}
+MY_ENTRY += num-features=1
+MY_ENTRY += path=$(abspath ${lm.file})
+LMODEL_ENTRIES += $$(subst $$(space),;,$${MY_ENTRY})
+LMODELS  += $(abspath ${lm.file})
+
+endef
+
+# generic patterns:
+%.blm.mm: | %.blm
+	$(lock)
+	ln $| $@
+	$(unlock)
+
+
+%.blm: | %.arpa.gz
+	$(lock)
+	${IRSTLM}/bin/compile-lm $| $@_ && $@_ $@
+	$(unlock)
