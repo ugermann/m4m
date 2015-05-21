@@ -1,5 +1,7 @@
 #-*- makefile -*-
 
+# module for suffix-array based phrase tables
+
 # build the parameter line for the moses.ini file:
 sapt.parameters  = pfwd=$(strip ${sapt.pfwd})
 sapt.parameters += pbwd=$(strip ${sapt.pbwd})
@@ -10,10 +12,14 @@ sapt.parameters += rare=$(strip ${sapt.rare})
 sapt.parameters += unal=$(strip ${sapt.unal})
 sapt.parameters += smooth=$(strip ${sapt.smooth})
 sapt.parameters += sample=$(strip ${sapt.sample})
-sapt.parameters += workers=$(if $(findstring ${sapt.sample},0),16,1)
+sapt.parameters += workers=$(if $(findstring ${sapt.sample},0),${sapt.workers},1)
 sapt.parameters += lexalpha=$(strip $(sapt.alpha))
+sapt.parameters += lexfade=$(strip $(sapt.fade))
+sapt.parameters += $(addprefix bias-server=,${sapt.bias-server})
+sapt.parameters += $(addprefix bias-loglevel=,${sapt.bias-loglevel})
 
 # count the number of features
+# should not be necessary any more! 30-April-2015 UG
 sapt.pfwd-flags := $(if $(findstring g,${sapt.pfwd}),1)
 sapt.pfwd-flags += $(if $(findstring s,${sapt.pfwd}),1)
 sapt.pfwd-flags += $(if $(findstring r,${sapt.pfwd}),1)
@@ -64,24 +70,47 @@ sapt.system_tag += a$(sapt.alpha)
 sapt.system_tag += n${sapt.sample}
 sapt.system_tag := $(subst $(space),.,${sapt.system_tag})
 
+sapt.dmodel  ?= $(subst $(space),-,${sapt.dmodel.tmp})
+
+#################################################################################
+# $2: input  factor
+# $3: output factor
+# $2: model string 
+define add_sadm
+
+dfname  := DM$(words ${DATBLE_ENTRIES})
+lrhook  := lr-func=$${dfname}
+dtentry := LexicalReordering
+dtentry += name=$${dfname}
+dtentry += input-factor=$(strip ${ptable.source-factors})
+dtentry += output-factor=$(strip ${ptable.target-factors})
+dtentry += type=$(strip ${sapt.dmodel})
+DTABLE_ENTRIES += $$(subst $$(space),;,$${dtentry})
+
+endef
 #################################################################################
 # $1: path to mmapped data
 # $2: path to text data
 # add_text_ptabel and add_binary_ptable
 define add_sapt
 
-#$$(info MAPPED $1)
-#$$(info TEXT $2)
 $(call mmap_bitext,$(strip $2),$(strip $1))
+
+lrhook := 
+$(ifneq $(strip ${sapt.dmodel}),,$(call add_sadm))
+# $(call add_sadm)
+# $$(info LR-FUNC=$${lrhook})
 
 ffname   := PT$(words ${PTABLE_ENTRIES})
 MY_ENTRY := Mmsapt
 MY_ENTRY += name=$$(ffname)
 MY_ETNRY += input-factor=$$(strip $${ptable.source-factors})
 MY_ENTRY += output-factor=$$(strip $${ptable.target-factors})
-MY_ENTRY += num-features=$${sapt.num-features}
+# MY_ENTRY += num-features=$${sapt.num-features}
 MY_ENTRY += base=$(abspath $1)/ L1=${L1} L2=${L2}
-MY_ENTRY += $${sapt.parameters}
+MY_ENTRY += $${sapt.parameters} $${lrhook}
+# MY_ENTRY += ${sapt.bias-server}
+
 PTABLE_ENTRIES += $$(subst $$(space),;,$${MY_ENTRY})
 
 MOSES_INI_PREREQ += $(addprefix $(strip $1)/${L1},.mct .tdx .sfa)
