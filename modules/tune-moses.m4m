@@ -69,7 +69,7 @@ $(strip $2): tune.aln   = $$(shell echo $(patsubst %.${L1},%.symal,$3) | perl -p
 $(strip $2): tune.itype = $$(call guess-inputtype,$3)
 $(strip $2): | $1 $3 $${tune.reffiles}
 $(strip $2): moses_cmdline := $${moses} $${mert.decoder-flags}
-$(strip $2): moses_cmdline += --inputtype $${tune.itype} -i $${tune.ref} -f $1
+$(strip $2): moses_cmdline += --inputtype $${tune.itype} -i $${tune.src} -f $1
 $(strip $2): 
 	$$(lock)
 	$$(info REFFILES = $${tune.reffiles})
