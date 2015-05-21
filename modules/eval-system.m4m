@@ -61,18 +61,17 @@ endef
 
 define bleu_eval
 
-EVALUATIONS += $1
+EVALUATIONS += $1.multi-bleu
 
-$1: moses.input     := $3
-$1: moses.ini       := $2
-$1: moses.inputtype := $(call guess-inputtype,$3)
-$1: bleu.ref        := $(call reffile,$3)
-$1: eval.ref        := $(call reffile,$3)
-$1: eval.aln        := $(call alnfile,$3)
+$1.moses-out: moses.input     := $3
+$1.moses-out: moses.ini       := $2
+$1.moses-out: moses.inputtype := $(call guess-inputtype,$3)
+$1.multi-bleu: bleu.ref       := $(call reffile,$3)
+$1.multi-bleu: eval.ref       := $(call reffile,$3)
+$1.multi-bleu: eval.aln       := $(call alnfile,$3)
 
 $1.moses-out:  | $2 $3
 $1.multi-bleu: | $(call reffiles,$3,$(dir $(patsubst %/,%,$(dir $3))))
-$1: | $1.multi-bleu 
 
 endef
 
