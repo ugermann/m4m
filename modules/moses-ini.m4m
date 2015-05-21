@@ -58,12 +58,12 @@ $(strip $1)/moses.ini.0:
 	$$(foreach dt,${DTABLE_ENTRIES},echo "$$(subst ;, ,$${dt})"   >> $$@_;)
 	$$(foreach lm,${LMODEL_ENTRIES},echo "$$(subst ;, ,$${lm})"   >> $$@_;)
 	echo                                                          >> $$@_
-	echo '[weight]'                                               >> $$@_
-	$$(foreach x,$(STANDARD_FEATURES),echo "$$x0= 1.0"            >> $$@_;)
-	$$(foreach i,${INPUT_FEATURES},echo '$$i' | $${weight_vector} >> $$@_;)
-	$$(foreach x,${PTABLE_ENTRIES},echo '$$x' | $${weight_vector} >> $$@_;)
-	$$(foreach x,${DTABLE_ENTRIES},echo '$$x' | $${weight_vector} >> $$@_;)
-	$$(foreach x,${LMODEL_ENTRIES},echo '$$x' | $${weight_vector} >> $$@_;)
+#	echo '[weight]'                                               >> $$@_
+#	$$(foreach x,$(STANDARD_FEATURES),echo "$$x0= 1.0"            >> $$@_;)
+#	$$(foreach i,${INPUT_FEATURES},echo '$$i' | $${weight_vector} >> $$@_;)
+#	$$(foreach x,${PTABLE_ENTRIES},echo '$$x' | $${weight_vector} >> $$@_;)
+#	$$(foreach x,${DTABLE_ENTRIES},echo '$$x' | $${weight_vector} >> $$@_;)
+#	$$(foreach x,${LMODEL_ENTRIES},echo '$$x' | $${weight_vector} >> $$@_;)
 	mv $$@_ $$@
 	$$(unlock)
 endef
