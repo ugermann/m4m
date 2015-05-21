@@ -16,10 +16,10 @@ MY_ENTRY += name=$$(ffname)
 MY_ENTRY += num-features=$(strip $3)
 MY_ENTRY += input-factor=$(strip $1)
 MY_ENTRY += output-factor=$(strip $2)
-MY_ENTRY += path=$(abspath $(strip $4)).minphr
+MY_ENTRY += path=$(abspath $(strip $4)).${compactpt.maxrank}
 $(if ${moses.ini_ttable-limit},MY_ENTRY += table-limit=${moses.ini_ttable-limit})
 PTABLE_ENTRIES += $$(subst $$(space),;,$${MY_ENTRY})
-PTABLES        += $(strip $4).minphr.${compactpt.maxrank}
+PTABLES        += $(strip $4).${compactpt.maxrank}.minphr
 
 $(strip $4).ondisk/Misc.dat: infactor=$1
 $(strip $4).ondisk/Misc.dat: outfactor=$2
@@ -28,10 +28,10 @@ $(strip $4).ondisk/Misc.dat: nscores=$3
 endef
 
 compactpt.maxrank ?= 100
-%.minphr.${compactpt.maxrank}: | %.txt.gz
+%.${compactpt.maxrank}.minphr: | %.txt.gz
 	$(lock)
 	${MOSES_BIN}/processPhraseTableMin -in $| -out $*_ -nscores 4 -threads all \
-	-maxrank ${compactpt.maxrank} && mv $*_.minphr $*.minphr.${compactpt.maxrank}
+	-maxrank ${compactpt.maxrank} && mv $*_.minphr $*.${compactpt.maxrank}.minphr
 	$(unlock)
 
 # end of add_compact_phrase_table
