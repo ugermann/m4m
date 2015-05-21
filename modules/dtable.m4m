@@ -10,7 +10,7 @@ mystem := $(strip $1).$(strip $2)
 $${mystem}.gz: dmshards = $$(shell ls $$(shardsdir)/*.dst.gz 2>/dev/null)
 $${mystem}.gz: dm.type=$(word 1,$(subst -, ,$2))
 $${mystem}.gz: dm.orient=$(word 2,$(subst -, ,$2))
-$${mystem}.gz: $$(shardsdir)/extract.done
+$${mystem}.gz: | $$(shardsdir)/extract.done
 	$$(lock)
 	${moses.score-reordering} \
 	<(${merge-sorted} \
@@ -39,6 +39,30 @@ DTABLE_ENTRIES += $$(subst $$(space),;,$${MY_ENTRY})
 DTABLES        += $(strip $5).$(strip $4).binlexr.idx
 
 endef
+
+define add_compact_reordering_table
+
+$(call create_lexical_reordering_table,$5,$4,$6)
+
+mystem   := $(strip $5).$(strip $4)
+ffname   := LexicalReordering$(words ${DTABLE_ENTRIES})
+MY_ENTRY := LexicalReordering
+MY_ENTRY += name=$$(ffname)
+MY_ENTRY += input-factor=$(strip $1)
+MY_ENTRY += output-factor=$(strip $2) 
+MY_ENTRY += num-features=$(strip $3)
+MY_ENTRY += type=$(strip $4)
+MY_ENTRY += path=$$(abspath $${mystem})
+DTABLE_ENTRIES += $$(subst $$(space),;,$${MY_ENTRY})
+DTABLES        += $(strip $5).$(strip $4).minlexr
+
+endef
+
+%.minlexr :| %.gz
+	$(lock)
+	${MOSES_BIN}/processLexicalTableMin \
+	-in $| -out $*_ -threads all && mv $*_.minlexr $*.minlexr
+	$(unlock)
 
 %.binlexr.idx :| %.gz
 	$(lock)
