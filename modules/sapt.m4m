@@ -12,11 +12,12 @@ sapt.parameters += rare=$(strip ${sapt.rare})
 sapt.parameters += unal=$(strip ${sapt.unal})
 sapt.parameters += smooth=$(strip ${sapt.smooth})
 sapt.parameters += sample=$(strip ${sapt.sample})
-sapt.parameters += workers=$(if $(findstring ${sapt.sample},0),${sapt.workers},1)
+sapt.parameters += $(addprefix workers=,${sapt.workers})
 sapt.parameters += lexalpha=$(strip $(sapt.alpha))
-sapt.parameters += lexfade=$(strip $(sapt.fade))
+sapt.parameters += $(addprefix lexfade=,$(strip $(sapt.fade)))
 sapt.parameters += $(addprefix bias-server=,${sapt.bias-server})
 sapt.parameters += $(addprefix bias-loglevel=,${sapt.bias-loglevel})
+sapt.parameters += $(addprefix method=,${sapt.method})
 
 # count the number of features
 # should not be necessary any more! 30-April-2015 UG
