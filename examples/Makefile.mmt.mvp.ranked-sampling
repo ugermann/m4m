@@ -1,0 +1,80 @@
+# -*- Makefile -*-
+
+################################################################################
+# SETUP PATHS
+################################################################################
+# important paths
+MOSES_ROOT    = /fs/sif0/germann/moses/ranked-sampling-v.0.1.0
+MOSES_BIN     = ${MOSES_ROOT}/bin
+MOSES_SCRIPTS = ${MOSES_ROOT}/scripts
+
+# common base of this set of experiments
+BASEDIR = /fs/snotra0/germann/mmt/mvp
+
+# WDIR setting is a bit complicated because of nfs mapping and naming issues.
+# This applies only to the valhalla cluster.
+WDIR := $(CURDIR)
+WDIR := $(patsubst /raid%,/fs/$(shell hostname)%,$(CURDIR))
+WDIR := $(patsubst /disk%,/fs/$(shell hostname)%,${WDIR})
+WDIR := $(patsubst /mnt%,/fs%,${WDIR})
+
+################################################################################
+# SETUP EXPERIMENT
+################################################################################
+L1 = en
+L2 = it
+lm.order = 5
+lm.file  = ${WDIR}/mdl/train.it.w5.ModifiedShiftBeta.blm
+# lm.training-data =  $(wildcard ../crp/trn/tok.nc/*.${L2}.gz)
+
+# IRSTLM IS NOT THERAD-SAFE!
+moses.threads = -threads 1
+
+# biased sampling:
+# bias-url = http://api-test.mymemory.translated.net/getContextSimilarity.php
+# sapt.bias-server   := ${bias-url}?language=english&of=json&context=
+# sapt.bias-loglevel := 0
+sapt.workers       := 16
+sapt.method        := rank
+sapt.sample        := 100
+
+eval.decoder-flags += --context-window all
+mert.decoder-flags += --context-window all
+################################################################################
+# include M4M modules
+SKIP_MODULES := mgiza
+include ${BASEDIR}/m4m/modules/m4m.m4m
+################################################################################
+# setup system
+SYSTEM := ${WDIR}
+$(eval $(call add_irstlm))
+$(eval $(call add_sapt,${WDIR}/crp/trn/mm,$(dir ${pll.txt1})))
+$(eval $(call create_moses_ini,${SYSTEM}))
+
+################################################################################
+# tune system
+tune.sets = $(patsubst %.en,%,$(wildcard ${WDIR}/crp/dev/cased/*.en))
+tune.run  = 1
+tune.runs = $(shell seq `echo ${tune.run} | perl -pe 's/^([0-9]+)$$/\1 \1/;s/-/ /;'`)
+
+tuned.ini   = ${WDIR}/tuned/$(notdir ${tuneset})/${run}/moses.ini
+eval        = ${WDIR}/eval/$(notdir ${tuneset})/${run}/$(notdir ${evalset})
+
+$(foreach tuneset,${tune.sets},\
+$(foreach run,$(subst ${comma},${space},${tune.runs}),\
+$(eval $(call tune_system,${WDIR}/moses.ini.0,${tuned.ini},${tuneset}.${L1}));\
+$(foreach evalset,$(filter-out ${tuneset},${tune.sets}),\
+$(eval $(call bleu_eval,${eval},${tuned.ini},${evalset}.${L1})))))
+
+tm: ${MOSES_INI_PREREQ}
+
+info:
+	$(info TUNED SYSTEMS: ${TUNED_SYSTEMS})
+	$(info EVALUATIONS: ${EVALUATIONS})
+
+system: ${SYSTEM}/moses.ini.0
+tune: ${TUNED_SYSTEMS}
+eval: ${EVALUATIONS}
+.PHONY: nil eval
+nil:
+	echo done
