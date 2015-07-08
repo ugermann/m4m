@@ -8,13 +8,20 @@ m4mdir := $(patsubst %modules/,%,\
 
 # m4m modules to be included
 SKIP_MODULES ?=
-M4M_MODULES := aux init 
-M4M_MODULES += tools moses-parameters prepare-corpus 
-M4M_MODULES += mgiza mgiza-force fastalign phrase-extraction 
-M4M_MODULES += irstlm kenlm 
+M4M_MODULES := util init toolchain
+M4M_MODULES += moses-parameters 
+M4M_MODULES += prepare-corpus 
+M4M_MODULES += language_model
+#M4M_MODULES += mgiza mgiza-force 
+M4M_MODULES += fastalign 
+#M4M_MODULES += phrase-extraction 
+#M4M_MODULES += irstlm kenlm 
 M4M_MODULES += mmbitext sapt phrase-table ondisk-pt
-M4M_MODULES += compact-pt dtable moses-ini 
-M4M_MODULES += tune-moses eval-system constants autogen
+M4M_MODULES += compact-pt dtable 
+M4M_MODULES += moses-ini 
+M4M_MODULES += tune-moses 
+M4M_MODULES += eval-system 
+#M4M_MODULES += constants autogen
 M4M_MODULES := $(filter-out ${SKIP_MODULES},${M4M_MODULES})
 
 # include default parameters

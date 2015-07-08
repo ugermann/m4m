@@ -5,7 +5,7 @@
 
 MOSES_ROOT = ${HOME}/code/moses/master/mosesdecoder
 MGIZA_ROOT = ${HOME}/tools/mgiza
-fast_align = ${HOME}/bin/fast_align 
+# fast_align = ${HOME}/bin/fast_align 
 
 # L1: source language; L2: target language
 L1   = de

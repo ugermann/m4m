@@ -1,24 +1,40 @@
-# -*- Makefile -*-
+# -*- mode: makefile-gmake; tab-width: 4; -*-
 # This module deals with corpus preprocessing.
 #
 # Processing order:
-# 1. tokenize (raw -> tok)
+# 1. tokenize (txt -> tok)
 # 2. truecase or lowercase (tok -> cased)
 # 3. clean for alignment, i.e., filter out undesirable sentence pairs (cased -> clean)
 
-max-sentence-length ?= 80
-casing.${L1}        ?= truecase
-casing.${L2}        ?= truecase
-MAX_NUM_REFS        ?= 4
-# tok-mno: monolingual resources
-# tok-pll: parallel resources
-trn.mno   = $(sort $(notdir $(foreach d,raw tok cased,$(wildcard ${WDIR}/crp/trn/mno/$d/*$1.gz))))
-trn.tok-mno   = $(addprefix ${WDIR}/crp/trn/mno/tok/, $(call trn.mno,$1))
-trn.cased-mno = $(addprefix ${WDIR}/crp/trn/mno/cased/, $(call trn.mno,$1))
+# casing: truecase lowercase natcase (natcase: leave casing as is)
+casing.${L1} ?= natcase
+casing.${L2} ?= natcase
+cs1 = $(subst natcase,nc,$(subst truecase,tc,$(subst lowecase,lc,${casing.${L1}})))
+cs2 = $(subst natcase,nc,$(subst truecase,tc,$(subst lowecase,lc,${casing.${L2}})))
 
-trn.pll = $(sort $(notdir $(foreach d,raw tok cased,$(wildcard ${WDIR}/crp/trn/pll/$d/*$1.gz))))
-trn.tok-pll = $(addprefix ${WDIR}/crp/trn/pll/tok/, $(call trn.pll,$1))
-trn.cased-pll = $(addprefix ${WDIR}/crp/trn/pll/cased/, $(call trn.pll,$1))
+# tokenization 
+
+pre-tokenize.${L1} ?= ${MOSES_SCRIPTS}/tokenizer/pre-tokenizer.perl -l ${L1}
+pre-tokenize.${L2} ?= ${MOSES_SCRIPTS}/tokenizer/pre-tokenizer.perl -l ${L2}
+
+tokenize.${L1}     ?= ${MOSES_SCRIPTS}/tokenizer/tokenizer.perl -q -a -l ${L1} -no-escape
+tokenize.${L2}     ?= ${MOSES_SCRIPTS}/tokenizer/tokenizer.perl -q -a -l ${L2} -no-escape
+
+# determine the corpus shards that go into the corpus, if not explicity specified
+findshards  = find $1
+findshards += -name '*.$2' -or -name '*.$2.gz' -or -name '*.$2.bz2' 
+findshards += | perl -pe 's!.*/(.*).$2(.(gz|bz2))?!$$1!;' | sort | uniq 
+
+$(foreach x, PLL MNO DEV TST,$(info $x_ALL $(wildcard $($x_ALL))))
+
+pllshards  ?= $(sort $(subst +, ,$(shell $(call findshards,$(wildcard $(PLL_ALL)),${L2}))))
+mnoshards  ?= $(shell $(call findshards,$(wildcard $(MNO_ALL)),${L2}))
+devshards  ?= $(shell $(call findshards,$(wildcard $(DEV_ALL)),${L1}))
+tstshards  ?= $(shell $(call findshards,$(wildcard $(TST_ALL)),${L1}))
+
+# $(info TEST SHARDS $(tstshards)) 
+
+MAX_NUM_REFS ?= 4
 
 ${WDIR}/crp/tst/cased/%.symal: | ${WDIR}/crp/tst/tok/%.symal
 	ln $| $@
@@ -26,15 +42,29 @@ ${WDIR}/crp/tst/cased/%.symal: | ${WDIR}/crp/tst/tok/%.symal
 ${WDIR}/crp/dev/cased/%.symal: | ${WDIR}/crp/dev/tok/%.symal
 	ln $| $@
 
+
+define provide_unzipped
+
+$1: | $1$(zipped)
+	$$(lock)
+	zcat -f $1 > $$@_ && mv $$@_ $$@
+	$$(unlock)
+
+endef
+
+
+# $1: directory with untokenized text
+# $2: destination directory for tokenized text
+# $3: basename of file
+# $4: language tag
 define tokenize
 
-$2/tok/%.$3.gz: | $2/raw/%.$3.gz
+$2/$3.$4$5: | $1/$3.$4$5
 	$$(lock)
-	zcat $$(word 1,$$|) \
-	| ${pre-tokenize.$1} \
-	| ${parallel} --pipe -k ${tokenize.$1} \
-	| gzip > $$@_
-	mv $$@_ $$@
+	$(zcat) $1/$3.$4$5 \
+	| ${pre-tokenize.$4} \
+	| ${parallel} --pipe -k ${tokenize.$4} \
+	$(if $5,| $(zipper) )> $$@_ && mv $$@_ $$@
 	$$(unlock)
 
 endef
@@ -80,7 +110,7 @@ $2/cased/%.$3: | $2/cased/%.$3.gz
 
 endef
 
-define skipcasing
+define natcase
 $1/cased/%.$2.gz: | $1/tok/%.$2.gz
 	$$(lock)
 	ln -s ../tok/$$*.$2.gz $$(@D)
@@ -91,39 +121,25 @@ $1/cased/%.$2: | $1/tok/%.$2.gz
 	$$(unlock)
 endef
 
-pllshards := $(notdir $(patsubst %.${L1}.gz,%,\
-	$(wildcard ${WDIR}/crp/trn/pll/raw/*.${L1}.gz)))
-
 .PHONY: pll-ready
 pll-clean = $(addprefix ${WDIR}/crp/trn/pll/clean/, $(pllshards))
 pll-ready: $(foreach l,${L1} ${L2}, $(addsuffix .$l.gz,${pll-clean}))
 	echo MAKEFLAGS = $(filter -n, ${MAKEFLAGS})
 
+# $1: tokenized dir
+# $2: clean dir
+# $3: shard name
 define clean_corpus
 
-# .INTERMEDIATE: $1/clean/$2.${L1}.gz 
-# .INTERMEDIATE: $1/clean/$2.${L2}.gz 
-# .INTERMEDIATE: $1/clean/$2.clean.log
-# .SECONDARY: $1/clean/$2.${L1}.gz  
-# .SECONDARY: $1/clean/$2.${L2}.gz 
-# .SECONDARY: $1/clean/$2.clean.log
-$1/clean/$2.${L2}.gz: | $1/clean/$2.clean.log
+$2/$3.${L2}$(zipped): | $2/$3.clean.log
+$2/$3.${L1}$(zipped): | $2/$3.clean.log
+$2/$3.clean.log: | $1/$3.${L1}$(zipped) $1/$3.${L2}$(zipped) 
 	$$(lock)
-	gzip < $$(@D)/_$2.${L2} > $$@_ && rm $$(@D)/_$2.${L2}
-	mv $$@_ $$@
-	$$(unlock)
-
-$1/clean/$2.${L1}.gz: | $1/clean/$2.clean.log
-	$$(lock)
-	gzip < $$(@D)/_$2.${L1} > $$@_ && rm $$(@D)/_$2.${L1} 
-	mv $$@_ $$@
-	$$(unlock)
-
-$1/clean/$2.clean.log: | $1/cased/$2.${L1}.gz $1/cased/$2.${L2}.gz 
-	$$(lock)
-	${MOSES_SCRIPTS}/training/clean-corpus-n.perl \
-	${WDIR}/crp/trn/pll/cased/$2 ${L1} ${L2} $$(@D)/_$2 1 $(max-sentence-length) $$@_
-	mv $$@_ $$@
+	${m4mdir}/scripts/filter-corpus.py \
+	-L1-$(waln.max-len) --max-ratio=$(waln.max-ratio) \
+	$1/$3.${L1}$(zipped) $1/$3.${L2}$(zipped) \
+	$2/$3.${L1}$(zipped) $2/$3.${L2}$(zipped) \
+	>> $$@_ && mv $$@_ $$@
 	$$(unlock)
 
 endef
@@ -159,24 +175,70 @@ ${WDIR}/aux/truecasing-model.${L2}: | $(call trn.tok-mno,${L2})
 #                         Generate rules                                   #
 ############################################################################
 
-all_data_dirs := $(addprefix ${WDIR}/crp/,trn/mno trn/pll dev tst dev+tst)
+snippet += \
+$(foreach ltag,${L1} ${L2},\
+$(foreach shard,$(pllshards),\
+$(call tokenize,${PLL_TXT},${PLL_TOK}/nc,${shard},${ltag},$(zipped))))
 
-# add rules for tokenization and casing
-snippet := $(foreach d,$(all_data_dirs),\
-$(call tokenize,${L1},$d,${L1})$(call ${casing.${L1}},${L1},$d,${L1}))
+snippet += \
+$(foreach shard,$(mnoshards),\
+$(call tokenize,${MNO_TXT},${MNO_TOK}/nc,${shard},${L2},$(zipped)))
 
-snippet += $(foreach d,$(all_data_dirs),\
-$(foreach l,${L2} $(addprefix ${L2},$(shell seq 0 ${MAX_NUM_REFS})),\
-$(call tokenize,${L2},$d,$l)$(call ${casing.${L2}},${L2},$d,$l)))
+snippet += \
+$(foreach shard,$(devshards),\
+$(call tokenize,${DEV_TXT},${DEV_TOK}/nc,${shard},${L2},))
 
-MY_EXPERIMENT += $(snippet)
-#$(info $(snippet))
+snippet += \
+$(foreach shard,$(devshards),\
+$(call tokenize,${DEV_TXT},${DEV_TOK}/nc,${shard},${L1},))
+
+snippet += \
+$(foreach shard,$(tstshards),\
+$(call tokenize,${TST_TXT},${TST_TOK}/nc,${shard},${L1},))
+
+snippet += \
+$(foreach shard,$(tstshards),\
+$(call tokenize,${TST_TXT},${TST_TOK}/nc,${shard},${L2},))
+
+snippet += \
+$(foreach shard,${pllshards},\
+$(call clean_corpus,${PLL_TOK}/nc,${PLL_CLN}/nc,${shard}))
+
+
+################################################################################
+#        CONCATENATE MULTI-PART PARALLEL CORPORA PRIOR TO ALIGNMENT
+################################################################################
+
+$(info PLL SHArDS $(pllshards))
+ifneq ($(words $(pllshards)),1)
+
+# $1: language tag
+# $2: copusname (combined)
+# $2: list of part files
+define combine_multi_part
+
+$2.$1$(zipped): | $3
+	$$(lock)
+	$(zcat)  $3 | $(zipper) > $$@.lock/$${@F}
+	mv $$@.lock/$${@F} $$@
+	$$(unlock)
+
+endef
+
+clnparts0   = $(addprefix ${PLL_CLN}/nc/,$(sort $(pllshards)))
+clnparts1   = $(addsuffix .${L1}$(zipped),$(clnparts0))
+clnparts2   = $(addsuffix .${L2}$(zipped),$(clnparts0))
+corpusname ?= $(subst $(space),+,$(sort $(pllshards)))
+ifeq ($(corpusname),$(subst $(space),+,$(sort $(pllshards))))
+$(info COMBO $(clnparts0))
+snippet += $(foreach x, 1 2,\
+$(call combine_multi_part,${L$x},${PLL_CLN}/nc/$(corpusname),$(clnparts$x)))
+endif
+endif
+
+################################################################################
+
+ifeq ($(trace),on)
+$(info $(snippet))
+endif
 $(eval $(snippet))
-
-# add rules for cleaning parallel data prior to word alignment
-snippet := $(foreach s,${pllshards},$(call clean_corpus,${WDIR}/crp/trn/pll,$s))
-
-MY_EXPERIMENT += $(snippet)
-#$(info $(snippet))
-$(eval $(snippet))
-

@@ -4,8 +4,8 @@
 # %.plog: precmd = sync; echo 3 > /proc/sys/vm/drop_caches; ${procmon} -o $$(basename $$@).plog -c
 # %.plog: %.multi-bleu
 
-reffile = $(shell echo $(patsubst %.${L1},%.${L2},$(strip $1)) | perl -pe 's?/cfn[^/]+/?/cased/?')
-alnfile = $(shell echo $(patsubst %.${L1},%.symal,$(strip $1)) | perl -pe 's?/cfn[^/]+/?/cased/?')
+reffile = $(shell echo $(patsubst %.${L1},%.${L2},$(patsubst %.lst,%.${L1},$(strip $1))) | perl -pe 's?/cfn[^/]+/?/cased/?')
+alnfile = $(shell echo $(patsubst %.${L1},%.symal,$(patsubst %.lst,%.${L1},$(strip $1))) | perl -pe 's?/cfn[^/]+/?/cased/?')
 
 moses.ini   ?= 
 moses.flags ?= 
@@ -41,6 +41,9 @@ endef
 
 %.moses-out: | ${moses.ini}
 	$(lock)
+	@echo
+	@echo EXECUTING ${moses} ${moses_eval_args}
+	@echo ${moses} ${moses_eval_args} > $*.moses_cmd 
 	${moses} ${moses_eval_args} > $@_ && mv $@_ $@
 	$(unlock)
 
@@ -63,8 +66,10 @@ define bleu_eval
 
 EVALUATIONS += $1.multi-bleu
 
+$1.moses-out: eval.lst        := $3
 $1.moses-out: moses.input     := $3
 $1.moses-out: moses.ini       := $2
+#$1.moses-out: eval.decoder-flags := $$(eval.decoder-flags)
 $1.moses-out: moses.inputtype := $(call guess-inputtype,$3)
 $1.multi-bleu: bleu.ref       := $(call reffile,$3)
 $1.multi-bleu: eval.ref       := $(call reffile,$3)

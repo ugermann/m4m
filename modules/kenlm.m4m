@@ -28,6 +28,6 @@ MY_ENTRY += num-features=1
 MY_ENTRY += lazyken=${kenlm.lazy}
 MY_ENTRY += path=$(abspath ${lm.file})
 LMODEL_ENTRIES += $$(subst $$(space),;,$${MY_ENTRY})
-LMODELS  += $(abspath ${lm.file})
+LMODELS  += ${lm.file}
 
 endef

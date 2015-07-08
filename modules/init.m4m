@@ -1,10 +1,49 @@
-# -*- Makefile -*-
+# -*- mode: makefile-gmake; tab-width: 4; -*-
 .SUFFIXES:  # no implicit rules 
 .SECONDARY: # keep all files created during the make run
 
 # In this module we initialize a number of variables that we use throughout M4M.
 # The 'empty' := assignments are essential; they tell /make/ not to expand variables 
 # recursively but upon assignment.
+
+# WDIR ?= $(shell cd . && pwd)
+
+# makefile debugging
+trace ?= off
+
+# DIRECTORIES
+WDIR    ?= .
+WDIR    := $(strip $(WDIR))
+PREFIX  ?= $(WDIR)
+
+MNO_TMX ?= $(WDIR)/crp/trn/mno/tmx
+MNO_TXT ?= $(WDIR)/crp/trn/mno/txt
+MNO_TOK ?= $(WDIR)/crp/trn/mno/tok
+MNO_ALL  = $(wildcard $(MNO_TMX) $(MNO_TXT) $(MNO_TOK))
+
+PLL_TMX ?= $(WDIR)/crp/trn/pll/tmx
+PLL_TXT ?= $(WDIR)/crp/trn/pll/txt
+PLL_TOK ?= $(WDIR)/crp/trn/pll/tok
+PLL_CLN ?= $(WDIR)/crp/trn/pll/cln
+PLL_ALL  = $(wildcard $(PLL_TMX) $(PLL_TXT) $(PLL_TOK) $(PLL_CLN))
+
+PLL_ALN ?= $(WDIR)/crp/trn/pll/aln
+
+DEV_TXT ?= $(WDIR)/crp/dev/txt
+DEV_TOK ?= $(WDIR)/crp/dev/tok
+DEV_ALL  = $(wildcard $(DEV_TXT) $(DEV_TOK))
+
+TST_TXT ?= $(WDIR)/crp/tst/txt
+TST_TOK ?= $(WDIR)/crp/tst/tok
+TST_ALL  = $(wildcard $(TST_TXT) $(TST_TOK))
+
+GIZA_IN ?= $(PLL_CLN)/nc
+FAST_IN ?= $(PLL_CLN)/nc
+
+TM_PATH ?= $(PREFIX)/mdl
+LM_PATH ?= $(PREFIX)/mdl
+
+# $(abspath resolves to actual paths, we want nfs paths:
 
 # standard features with one weight each
 STANDARD_FEATURES := UnknownWordPenalty WordPenalty Distortion PhrasePenalty
@@ -15,13 +54,15 @@ LMODEL_ENTRIES    :=
 MOSES_INI_PREREQ  := 
 MY_ENTRY          :=
 TUNED_SYSTEMS     :=
-DTABLES :=
-PTABLES := 
-LMODELS := 
-M4M_HISTORY :=
-INPUT_FEATURES ?=
+DTABLES           :=
+PTABLES           := 
+LMODELS           := 
+M4M_HISTORY       :=
+INPUT_FEATURES    ?=
 export MY_EXPERIMENT := 
 
+L1   := $(strip $(L1))
+L2   := $(strip $(L2))
 
 SHELL         = bash
 MAKEFLAGS    += --warn-undefined-variables

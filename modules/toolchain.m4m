@@ -1,0 +1,56 @@
+# -*- mode: makefile-gmake; tab-width: 4 -*-
+# This file specifies the tool chain. You should never edit this file but set 
+# the respective variables in your makefile before including M4M.
+
+# preferred system tools
+
+zipper ?= gzip
+
+# PATHS TO TOOLS
+MOSES_ROOT    ?= $(HOME)/moses
+MOSES_BIN     ?= $(MOSES_ROOT)/bin
+MOSES_SCRIPTS ?= $(MOSES_ROOT)/scripts
+
+# INDIVIDUAL PROGRAMS
+
+moses                ?= ${MOSES_BIN}/moses 
+merge-sorted         ?= ${MOSES_BIN}/merge-sorted
+
+train-truecaser      ?= ${MOSES_SCRIPTS}/recaser/train-truecaser.perl
+run-truecaser        ?= ${MOSES_SCRIPTS}/recaser/truecase.perl
+run-lowercaser       ?= ${MOSES_SCRIPTS}/tokenizer/lowercase.perl
+run-detruecaser      ?= ${MOSES_SCRIPTS}/recaser/detruecase.perl
+
+mert                 ?= ${MOSES_SCRIPTS}/training/mert-moses.pl
+clean-decoder-output ?= ${MOSES_SCRIPTS}/ems/support/remove-segmentation-markup.perl
+detruecase           ?= ${MOSES_SCRIPTS}/recaser/detruecase.perl
+multi-bleu           ?= ${MOSES_SCRIPTS}/generic/multi-bleu.perl
+analyze              ?= ${MOSES_SCRIPTS}/ems/support/analysis.perl
+report               ?= ${MOSES_SCRIPTS}/ems/support/report-experiment-scores.perl
+apply-weights        ?= ${MOSES_SCRIPTS}/ems/support/substitute-weights.perl
+time                 ?= /usr/bin/time
+procmon              ?= ${M4M_SCRIPTS}/procmon.py
+
+# PARALLEL PROCESSING (GNU PARALLEL IS REQUIRED!)
+parallel ?= $(shell which parallel)
+$(if ${parallel},,$(error GNU parallel utility not found!))
+parallel += --gnu
+
+NUMCORES  := $(shell ${parallel} --number-of-cores)
+$(if ${NUMCORES},,$(error Cannot determine the number of cores!))
+
+moses.threads ?= -threads ${NUMCORES}
+SHARDSIZE = 100000
+
+ptable.extract.in-parallel := $(shell echo $$((${NUMCORES} - 2)))
+# mgiza.NCPUS ?= $(shell echo $$((${NUMCORES})))
+mgiza.NCPUS ?= ${NUMCORES}
+
+# COMPRESSION / DECOMPRESSION
+ifeq ($(zipper),bzip2)
+zipped := .bz2
+zcat   := bzcat -f
+else ifeq ($(zipper),gzip)
+zipped := .gz
+zcat   := zcat -f
+endif

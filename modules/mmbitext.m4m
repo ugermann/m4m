@@ -2,17 +2,21 @@
 # Makefile macros for building a Moses system from a word-aligned corpus
 # (c) 2011 - 2012 Ulrich Germann
 
+
+txt2mctbase = $1$(patsubst %$(zipped),%,$(notdir $2))
+
 ################################################################################
 # Below, 'track' means one side of the parallel bitext
-# $1: absolute path of the basename of the bitext track in text format
-# $2: destination directory of the memory-mapped bitext track
+# $1: path and basename of the bitext track in text format (up to the language tag ($3))
+# $2: destination path and basename
+# $3: language tag
 define mmap_ttrack
 
-$2/$(notdir $1).mct: | $2/$(notdir $1).tdx
-$2/$(notdir $1).tdx: | $2/$(notdir $1).sfa
-$2/$(notdir $1).sfa: | $(strip $1).txt.gz
+$2$3.mct: | $2$3.tdx
+$2$3.tdx: | $2$3.sfa
+$2$3.sfa: | $1$3$(zipped)
 	$$(lock)
-	zcat -f $(strip $1).txt.gz \
+	zcat -f $1$3$(zipped) \
 	| ${MOSES_BIN}/mtt-build -i -o $$@.lock/$$(basename $${@F})
 	mv $$@.lock/$$(basename $${@F}).tdx $${@D}
 	mv $$@.lock/$$(basename $${@F}).sfa $${@D}
@@ -26,21 +30,17 @@ endef
 ################################################################################
 # $1: base name of word-aligned corpus in text format
 # $2: directory for mmapped bitext
-define mmap_bitext
+define mmap_alignment
 
-$(call mmap_ttrack,$1${L1},$2)
-$(call mmap_ttrack,$1${L2},$2)
-$2/$(notdir $1)${L1}-${L2}.mam: SYMAL = $(strip $1)${L1}-${L2}.symal.gz
-$2/$(notdir $1)${L1}-${L2}.mam: | $(strip $1)${L1}-${L2}.symal.gz
+$2${L1}-${L2}.mam: | $1${L1}-${L2}.symal$(zipped)
 	$$(lock)
-	zcat -f $${SYMAL} | ${MOSES_BIN}/symal2mam $$@_ && mv $$@_ $$@ 
+	zcat -f $1${L1}-${L2}.symal$(zipped) | ${MOSES_BIN}/symal2mam $$@_ && mv $$@_ $$@ 
 	$$(unlock)
 
-$2/$(notdir $1)${L1}-${L2}.lex: | $2/$(notdir $1)${L1}.mct
-$2/$(notdir $1)${L1}-${L2}.lex: | $2/$(notdir $1)${L2}.mct
-$2/$(notdir $1)${L1}-${L2}.lex: | $2/$(notdir $1)${L1}-${L2}.mam
+$2${L1}-${L2}.lex: | $2${L1}.mct $2${L1}.mct
+$2${L1}-${L2}.lex: | $2${L1}-${L2}.mam
 	$$(lock)
-	${MOSES_BIN}/mmlex-build $2/$(notdir $1) ${L1} ${L2} \
+	${MOSES_BIN}/mmlex-build $2 ${L1} ${L2} \
 	-o $$@.lock/$${@F} -c $$@.lock/$$(basename $${@F}).coc 
 	mv $$@.lock/$${@F} $${@D}
 	mv $$@.lock/$$(basename $${@F}).coc $${@D}

@@ -3,6 +3,12 @@
 # unless specified elsewhere, we assume that the moses.ini file for the untuned 
 # system is model/mose.ini.0
 
+mert.nbest         ?= 100
+mert.extra-flags   ?=
+mert.extra-flags   += --no-filter-phrase-table
+mert.decoder-flags ?=
+mert.decoder-flags += ${moses.threads}
+
 untuned_model ?= model/moses.ini.0
 tune.dir      ?= ${basedir}/tune
 
@@ -12,19 +18,29 @@ tune.dir      ?= ${basedir}/tune
 # get basenames (with path) of all files belonging 
 # to a particular set (e.g. dev / tst)
 get_set = $(addprefix $(patsubst %/,%,$1)/,\
-$(shell find -L $(patsubst %/,%,$(dir $1)) -regex '.*${L1}\(.gz\)?'\
-| perl -pe 's/.*\/(.*?).${L1}(\.gz)?$$/$$1/' | sort | uniq))
+$(shell find -L $(patsubst %/,%,$(dir $1)) -regex '.*${L1}\($(zipped)\)?'\
+| perl -pe 's/.*\/(.*?).${L1}(\$(zipped))?$$/$$1/' | sort | uniq))
 
 # $1: moses input file 
 # ->: base name of corresponding reference files
-refbase  = $(notdir $(patsubst %.${L1},%.${L2},%,$(patsubst %.gz,%,$1)))
+refbase  = $(notdir $(patsubst %.${L1},%.${L2},\
+	$(patsubst %$(zipped),%,\
+	$(patsubst %.lst,%.${L1},$1))))
 
 # $1: moses input file 
 # $2: root of directory tree for search
 # ->: list of full paths to reference files
-reffiles = $(addprefix $(patsubst %/,%,$2)/cased/,\
-$(shell find -L $2 -regex '.*$(call refbase,$1)[0-9]*\(.gz\)?'\
-| perl -pe 's/.*\/(.*?)(\.gz)?$$/$$1/' | sort | uniq))
+# reffiles = $(addprefix $(patsubst %/,%,$2)/$(cs2)/,\
+# $(shell find -L $2 -regex '.*$(call refbase,$1)[0-9]*\($(zipped)\)?'\
+# | perl -pe 's/.*\/(.*?)(\$(zipped))?$$/$$1/' | sort | uniq))
+
+reffiles = $(if $(filter $(suffix $1),.lst),$(patsubst %.lst,%.${L2},$1),\
+	$(shell find -L $(DEV_ALL) $(TST_ALL) -regex '.*$(call refbase,$1)[0-9]*'))
+
+# reffilepat = $(shell basename $1 | perl -pe 's/(.lst|.${L1}($(zipped))?)$$//;')
+# reffiles = $(shell find -L $$(dirname $$(dirname $1)) \
+# $$(basename $1 | perl -pe 's/.(${L1}|lst)(.$(zipped))?//;').
+
 
 # $1: moses input file 
 # ->: 0 for plain text, 1 for confusion network
@@ -56,20 +72,29 @@ endef
 #
 define tune_system
 
+
 TUNED_SYSTEMS += $(strip $2)
-tune.reffiles  = $$(call reffiles,$3,$(dir $(patsubst %/,%,$(dir $3))))
+tune.reffiles  = $$(call reffiles,$3)
+
+$$(info TUNING 1: $1)
+$$(info TUNING 2: $2)
+$$(info TUNING 3: $3)
+$$(info TUNING R: $$(tune.reffiles))
 
 $(if $(findstring ${ptable.impl}-${sapt.mode},sapt-spe),$(call spe_tuning,$2))
 export moses_cmdline
 $(strip $2): $${PTABLES} $${DTABLES} $${LMODELS} $${MOSES_INI_PREREQ}
 $(strip $2): mert.wdir  = $(dir $(abspath $2))tmp
 $(strip $2): tune.src   = $3
-$(strip $2): tune.ref   = $$(shell echo $(patsubst %.${L1},%.${L2},$3) | perl -pe 's?/cfn[^/]+/?/cased/?')
+$(strip $2): tune.lst   = $(patsubst %.${L1},%.lst,$3)
+$(strip $2): tune.ref   = $$(tune.reffiles)
 $(strip $2): tune.aln   = $$(shell echo $(patsubst %.${L1},%.symal,$3) | perl -pe 's?/cfn[^/]+/?/cased/?')
 $(strip $2): tune.itype = $$(call guess-inputtype,$3)
 $(strip $2): | $1 $3 $${tune.reffiles}
 $(strip $2): moses_cmdline := $${moses} $${mert.decoder-flags}
 $(strip $2): moses_cmdline += --inputtype $${tune.itype} -i $${tune.src} -f $1
+$(strip $2): mert.decoder-flags := $$(mert.decoder-flags)
+$(strip $2): mert.extra-flags := $$(mert.extra-flags)
 $(strip $2): 
 	$$(lock)
 	$$(info REFFILES = $${tune.reffiles})
@@ -99,7 +124,7 @@ $(strip $3): $1 $2
 
 endef
 
-tune.sets ?= $(patsubst %.${L1}.gz,%,$(subst /raw/,/cased/,$(wildcard ${WDIR}/crp/dev/raw/*.${L1}.gz)))
+tune.sets ?= $(patsubst %.${L1}$(zipped),%,$(subst /raw/,/cased/,$(wildcard ${WDIR}/crp/dev/raw/*.${L1}$(zipped))))
 
 ifdef tune.runs
 define tune_all_systems

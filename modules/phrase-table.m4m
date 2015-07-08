@@ -7,9 +7,9 @@
 # (is that actually worth it?)
 
 word-alignment ?= fast
-pll.txt1 ?= ${WDIR}/crp/trn/aln/${word-alignment}/${L1}.txt.gz
-pll.txt2 ?= ${WDIR}/crp/trn/aln/${word-alignment}/${L2}.txt.gz
-pll.aln  ?= ${WDIR}/crp/trn/aln/${word-alignment}/${L1}-${L2}.symal.gz
+pll.txt1 ?= ${WDIR}/crp/trn/aln/${word-alignment}/${L1}$(zipped)
+pll.txt2 ?= ${WDIR}/crp/trn/aln/${word-alignment}/${L2}$(zipped)
+pll.aln  ?= ${WDIR}/crp/trn/aln/${word-alignment}/${L1}-${L2}.symal$(zipped)
 
 define create_word_lexica
 

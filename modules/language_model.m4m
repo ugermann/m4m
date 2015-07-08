@@ -1,0 +1,58 @@
+# -*- mode: makefile-gmake; tab-width:4; -*-
+#
+# language model settings
+
+nolmtrndatamsg = Variable $$lm.training-data is empty!
+
+lm.order      ?= 5
+lm.type       ?= kenlm
+lm.factor     ?= 0
+lm.components ?= $(patsubst %.${L2}$(zipped),%,$(notdir $(lm.training-data)))
+lm.corpusname ?= $(subst $(space),+,$(sort $(lm.components)))
+lm.file       ?= ${${lm.impl}.file}
+
+################################################################################
+# KenLM 
+
+# default model parameters
+kenlm.type     ?= probing
+kenlm.lazy     ?= 1 
+kenlm.factor   ?= ${lm.factor}
+kenlm.file     ?= ${LM_PATH}/$(lm.corpusname).${L2}.${lm.factor}.${lm.order}-grams.kenlm.${kenlm.type}
+
+# build tools
+kenlm.build    ?= ${MOSES_BIN}/lmplz
+kenlm.binarize ?= ${MOSES_BIN}/build_binary
+kenlm.memory   ?= 10%
+
+define build_kenlm
+
+LMODELS += $${kenlm.file}
+$${kenlm.file}: | $${lm.training-data}
+	$$(if ${lm.training-data},,$$(error ${nolmtrndatamsg}))
+	$$(lock)
+	zcat -f ${lm.training-data} \
+	| ${kenlm.build} -o ${lm.order} -S${kenlm.memory} -T $$@.lock/lm \
+	| ${kenlm.binarize} ${kenlm.type} /dev/stdin $$@_ && mv $$@_ $$@
+	$$(unlock)
+
+endef
+
+define add_kenlm
+
+$(if $(filter ${kenlm.file}, ${LMODELS}),,$(build_kenlm))
+ffname := LM$(words ${LMODEL_ENTRIES})
+MY_ENTRY := KENLM
+MY_ENTRY += name=$$(ffname)
+MY_ENTRY += order=${lm.order} 
+MY_ENTRY += factor=${lm.factor}
+MY_ENTRY += num-features=1
+MY_ENTRY += lazyken=${kenlm.lazy}
+MY_ENTRY += path=${kenlm.file}
+
+LMODEL_ENTRIES += $$(subst $$(space),;,$${MY_ENTRY})
+
+endef
+################################################################################
+################################################################################
+################################################################################
