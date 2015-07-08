@@ -18,6 +18,7 @@ sapt.parameters += $(addprefix cumb=,$(strip ${sapt.cumb}))
 sapt.parameters += $(addprefix lexfade=,$(strip $(sapt.fade)))
 sapt.parameters += $(addprefix bias-server=,${sapt.bias-server})
 sapt.parameters += $(addprefix bias-loglevel=,${sapt.bias-loglevel})
+sapt.parameters += $(addprefix method=,${sapt.method})
 
 # sapt.system_tag := ${ptable.source-factors}-${ptable.target-factors}
 # sapt.system_tag += f$(strip ${sapt.pfwd})
@@ -85,4 +86,3 @@ $(info ADDING SAMPLING PHRASE TABLE: $(call mkpath,$4,$1))
 
 endef
 #################################################################################
-
